@@ -17,6 +17,7 @@ class EntityType:
     plural: str
     fields: tuple[Field, ...]
     default_known: bool = False
+    sort_field: str | None = None  # lists sort by this field first (then by name); None sorts by name only
 
 
 ADVERSARY_ROLES = ("Bruiser", "Horde", "Leader", "Minion", "Ranged", "Skulk",
@@ -85,7 +86,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("session_date", "Session date", "date"),
             Field("summary", "Summary"),
             Field("notes", "Notes"),
-        )),
+        ), sort_field="session_date"),
     )
 }
 

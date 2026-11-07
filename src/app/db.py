@@ -98,6 +98,25 @@ def visible_to_party(entity: dict) -> bool:
     return entity["status"] == "canon" and bool(entity["known_to_party"])
 
 
+def natural_key(text: str) -> list:
+    """Sort "Session 2" before "Session 10": digit runs compare as numbers."""
+    return [(0, int(part), "") if part.isdigit() else (1, 0, part)
+            for part in re.split(r"(\d+)", text.casefold()) if part]
+
+
+def list_sort_key(entity_type: str):
+    sort_field = ENTITY_TYPES[entity_type].sort_field
+
+    def key(entity: dict):
+        name = natural_key(entity["name"])
+        if sort_field is None:
+            return name
+        value = entity["fields"].get(sort_field, "")
+        return (0, value, name) if value else (1, "", name)  # entries without the field go last
+
+    return key
+
+
 def list_entities(conn: sqlite3.Connection, entity_type: str, statuses: tuple[str, ...],
                   party_view: bool = False) -> list[dict]:
     if party_view:
@@ -105,11 +124,10 @@ def list_entities(conn: sqlite3.Connection, entity_type: str, statuses: tuple[st
     placeholders = ",".join("?" * len(statuses))
     party_filter = " AND known_to_party = 1" if party_view else ""
     rows = conn.execute(
-        f"SELECT * FROM entities WHERE type = ? AND status IN ({placeholders}){party_filter} "
-        "ORDER BY name COLLATE NOCASE",
+        f"SELECT * FROM entities WHERE type = ? AND status IN ({placeholders}){party_filter}",
         (entity_type, *statuses),
     ).fetchall()
-    return [_to_dict(r) for r in rows]
+    return sorted((_to_dict(r) for r in rows), key=list_sort_key(entity_type))
 
 
 def link_targets(conn: sqlite3.Connection, exclude_id: int) -> list[dict]:

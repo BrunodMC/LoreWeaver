@@ -102,6 +102,22 @@ def test_backups_skip_identical_snapshots_and_keep_newest_ten(conn, temp_db, mon
     assert backups[-1] == newest
 
 
+def test_lists_sort_numbers_naturally(conn):
+    for name in ("Session 10", "Session 2", "session 1", "Session 0: Intro"):
+        db.create_entity(conn, "npc", name, {})
+    names = [e["name"] for e in db.list_entities(conn, "npc", ("canon",))]
+    assert names == ["Session 0: Intro", "session 1", "Session 2", "Session 10"]
+
+
+def test_sessions_sort_by_date_then_name_with_undated_last(conn):
+    db.create_entity(conn, "session", "Session 10", {})
+    db.create_entity(conn, "session", "Session 2", {})
+    db.create_entity(conn, "session", "Late recap", {"session_date": "2026-03-01"})
+    db.create_entity(conn, "session", "Early recap", {"session_date": "2025-11-20"})
+    names = [e["name"] for e in db.list_entities(conn, "session", ("canon",))]
+    assert names == ["Early recap", "Late recap", "Session 2", "Session 10"]
+
+
 def test_backup_without_database_is_a_no_op(temp_db):
     assert db.backup_db() is None
 
