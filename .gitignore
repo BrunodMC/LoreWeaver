@@ -1,1 +1,6 @@
-src/config.json
+src/.env
+src/content/*
+!src/content/templates
+notes
+__pycache__/
+reference/*.pdf
