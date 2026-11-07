@@ -12,9 +12,9 @@
 {% if not party_view %}{% include "_status_actions.html" %}{% endif %}
 
 <dl class="fields">
-  {% for f in etype.fields %}
+  {% for f in etype.fields if not (party_view and f.dm_only) %}
   {% set shown = entity.fields.get(f.key, "")|lore(party_view) %}
-  <dt>{{ f.label }}</dt>
+  <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
   <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
   {% endfor %}
 </dl>

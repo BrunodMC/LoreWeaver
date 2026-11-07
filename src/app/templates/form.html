@@ -24,9 +24,15 @@
   <p class="hint">Wrap anything the party doesn't know in double pipes: <code>||The Reaping Eye was stolen.||</code></p>
 
   {% for f in etype.fields %}
-  <label>{{ f.label }}
+  {% set current = values.fields.get(f.key, "") %}
+  <label>{% if f.dm_only %}<span>{{ f.label }} <span class="dm-tag">DM only</span></span>{% else %}{{ f.label }}{% endif %}
     {% if f.widget == "textarea" %}
-    <textarea name="{{ f.key }}" rows="4">{{ values.fields.get(f.key, "") }}</textarea>
+    <textarea name="{{ f.key }}" rows="4">{{ current }}</textarea>
+    {% elif f.widget == "select" %}
+    <select name="{{ f.key }}">
+      <option value=""></option>
+      {% for option in f.options %}<option value="{{ option }}"{% if current == option %} selected{% endif %}>{{ option }}</option>{% endfor %}
+    </select>
     {% else %}
     <input type="{{ f.widget }}" name="{{ f.key }}" value="{{ values.fields.get(f.key, '') }}">
     {% endif %}

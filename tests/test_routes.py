@@ -211,6 +211,30 @@ def test_view_toggle_only_redirects_within_the_site(client):
     assert client.get("/view/admin").status_code == 404
 
 
+def test_select_fields_reject_values_outside_their_options(client):
+    response = client.post("/adversary", data={"name": "Earth Druid", "role": "Wizard"})
+    assert response.status_code == 422
+    assert "Role must be one of:" in response.text
+    create(client, "adversary", "Earth Druid", role="Support", tier="1")
+
+
+def test_dm_only_fields_never_show_in_party_view(client):
+    druid = create(client, "adversary", "Earth Druid", known="1",
+                   description="Druids who move stone.", hp="3", features="Soilbind - Action")
+    dm_page = client.get(f"/adversary/{druid}").text
+    assert "Soilbind" in dm_page and "DM only" in dm_page
+
+    party(client)
+    page = client.get(f"/adversary/{druid}").text
+    assert "Druids who move stone." in page
+    assert "Soilbind" not in page and "HP" not in page and "DM only" not in page
+
+
+def test_new_form_defaults_known_flag_by_type(client):
+    assert 'name="known" value="1" checked' in client.get("/pc/new").text
+    assert 'name="known" value="1" checked' not in client.get("/npc/new").text
+
+
 def test_timestamps_display_in_local_time(client):
     from datetime import datetime, timezone
 

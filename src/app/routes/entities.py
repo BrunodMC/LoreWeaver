@@ -82,12 +82,16 @@ def extra_fields(etype: EntityType, entity: dict) -> dict:
     return {k: v for k, v in entity["fields"].items() if k not in spec_keys}
 
 
-def unclosed_secret_error(etype: EntityType, form) -> str | None:
+def field_error(etype: EntityType, form) -> str | None:
+    for f in etype.fields:
+        value = str(form.get(f.key, "")).strip()
+        if f.widget == "select" and value and value not in f.options:
+            return f"{f.label} must be one of: {', '.join(f.options)}."
     labels = [f.label for f in etype.fields if knowledge.has_unclosed_secret(str(form.get(f.key, "")))]
-    if not labels:
-        return None
-    return (f"Unclosed || secret marker in: {', '.join(labels)}. "
-            "Secrets must be wrapped on both sides, like ||this||.")
+    if labels:
+        return (f"Unclosed || secret marker in: {', '.join(labels)}. "
+                "Secrets must be wrapped on both sides, like ||this||.")
+    return None
 
 
 def render_links(request: Request, conn: sqlite3.Connection, etype: EntityType,
@@ -155,7 +159,7 @@ async def list_view(request: Request, type_key: str, conn: Conn, status: str | N
 @router.get("/{type_key}/new", response_class=HTMLResponse)
 async def new_form(request: Request, type_key: str):
     etype = entity_type_or_404(type_key)
-    return render_form(request, etype, None, {"name": "", "status": "canon", "known_to_party": 0, "fields": {}})
+    return render_form(request, etype, None, {"name": "", "status": "canon", "known_to_party": int(etype.default_known), "fields": {}})
 
 
 @router.post("/{type_key}")
@@ -168,7 +172,7 @@ async def create(request: Request, type_key: str, conn: Conn):
     fields = db.merge_fields(type_key, {k: str(v) for k, v in form.items()})
     error = ("A name is required." if not name
              else "Invalid status." if status not in STATUSES
-             else unclosed_secret_error(etype, form))
+             else field_error(etype, form))
     if error:
         values = {"name": name, "status": status, "known_to_party": int(known), "fields": fields}
         return render_form(request, etype, None, values, error, 422)
@@ -209,7 +213,7 @@ async def update(request: Request, type_key: str, entity_id: int, conn: Conn):
     form = await request.form()
     name = str(form.get("name", "")).strip()
     fields = db.merge_fields(type_key, {k: str(v) for k, v in form.items()}, entity["fields"])
-    error = "A name is required." if not name else unclosed_secret_error(etype, form)
+    error = "A name is required." if not name else field_error(etype, form)
     if error:
         return render_form(request, etype, entity, {**entity, "name": name, "fields": fields}, error, 422)
     db.update_entity(conn, entity_id, name, fields)

@@ -115,3 +115,12 @@ button:hover, .button:hover { background: #eaeef2; }
 .hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .hint code { background: #f3e8f8; padding: 0 4px; border-radius: 4px; }
 .entity-form label.checkbox, .link-form label.checkbox { flex-direction: row; align-items: center; gap: 6px; font-weight: normal; }
+.dm-tag {
+  font-size: 0.7rem;
+  font-weight: normal;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #f3e8f8;
+  border: 1px solid #c7a3d9;
+  vertical-align: middle;
+}
