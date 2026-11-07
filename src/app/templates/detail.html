@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ entity.name }} · LoreWeaver{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="muted"><a href="/{{ etype.key }}">{{ etype.plural }}</a></p>
+    <h1>{{ entity.name }}</h1>
+  </div>
+  {% if not party_view %}<a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>{% endif %}
+</div>
+
+{% if not party_view %}{% include "_status_actions.html" %}{% endif %}
+
+<dl class="fields">
+  {% for f in etype.fields %}
+  {% set shown = entity.fields.get(f.key, "")|lore(party_view) %}
+  <dt>{{ f.label }}</dt>
+  <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
+  {% endfor %}
+</dl>
+
+{% if extra_fields and not party_view %}
+<section class="extra-fields">
+  <h2>Other fields</h2>
+  <p class="muted">Kept from earlier versions of this entity type. Not editable in the form.</p>
+  <dl class="fields">
+    {% for key, value in extra_fields.items() %}
+    <dt>{{ key }}</dt><dd class="field-value">{{ value|lore }}</dd>
+    {% endfor %}
+  </dl>
+</section>
+{% endif %}
+
+{% include "_links_section.html" %}
+
+{% if not party_view %}<p class="muted timestamps">Created {{ entity.created_at|local_time }} · Updated {{ entity.updated_at|local_time }}</p>{% endif %}
+{% endblock %}

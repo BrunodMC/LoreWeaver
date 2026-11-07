@@ -1,0 +1,117 @@
+:root {
+  --text: #1f2328;
+  --muted: #6b7280;
+  --border: #d0d7de;
+  --accent: #2f5d8a;
+  --error: #b42318;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+a { color: var(--accent); }
+
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.site-header .brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.site-header nav { display: flex; gap: 16px; flex-wrap: wrap; }
+
+main { max-width: 860px; margin: 0 auto; padding: 24px; }
+
+h1 { margin: 0 0 16px; }
+h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.page-head p { margin: 0; }
+
+.muted { color: var(--muted); }
+.error { color: var(--error); font-weight: 600; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+thead th { font-weight: 600; color: var(--muted); }
+
+.filters { display: flex; gap: 12px; margin-bottom: 16px; }
+.filters a.active { font-weight: 700; text-decoration: none; color: var(--text); }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+}
+.badge-canon { background: #e7f3ea; border-color: #9cc9a6; }
+.badge-draft { background: #fff6dd; border-color: #e3c56b; }
+.badge-archived { background: #eeeeee; color: var(--muted); }
+
+button, .button {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: var(--text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+button:hover, .button:hover { background: #eaeef2; }
+
+.status-actions { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+
+.fields dt { font-weight: 600; margin-top: 12px; }
+.fields dd { margin: 2px 0 0; }
+.field-value { white-space: pre-wrap; }
+
+.entity-form { display: flex; flex-direction: column; gap: 14px; }
+.entity-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.entity-form input, .entity-form textarea, .entity-form select,
+.link-form input, .link-form select {
+  font: inherit;
+  font-weight: normal;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.form-actions { display: flex; gap: 12px; align-items: center; }
+
+.link-list { list-style: none; padding: 0; }
+.link-list li { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+.link-list .relation { color: var(--muted); }
+.link-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+.timestamps { margin-top: 32px; font-size: 0.85rem; }
+
+/* Party knowledge */
+.view-toggle { margin-left: auto; display: flex; gap: 4px; }
+.view-toggle a { padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; }
+.view-toggle a.active { background: var(--text); color: #fff; border-color: var(--text); }
+.party-banner { margin: 0; padding: 6px 24px; background: #eef4fb; border-bottom: 1px solid #b9cfe6; font-size: 0.9rem; }
+
+.badge-known { background: #e6effa; border-color: #9db8d9; }
+.badge-unknown { background: #f3e8f8; border-color: #c7a3d9; }
+.secret {
+  background: #f3e8f8;
+  border-bottom: 1px dashed #9b59b6;
+}
+.secret-link { opacity: 0.85; }
+.secret-link .relation { font-style: italic; }
+.secret-toggle { border-color: #c7a3d9; background: #f3e8f8; }
+.link-action { padding: 1px 8px; font-size: 0.8rem; }
+
+.status-actions .divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.hint code { background: #f3e8f8; padding: 0 4px; border-radius: 4px; }
+.entity-form label.checkbox, .link-form label.checkbox { flex-direction: row; align-items: center; gap: 6px; font-weight: normal; }

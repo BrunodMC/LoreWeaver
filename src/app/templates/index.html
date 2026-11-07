@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>World bible</h1>
+{% if party_view %}
+<table class="counts">
+  <tbody>
+    {% for key, t in entity_types.items() %}
+    <tr>
+      <th><a href="/{{ key }}">{{ t.plural }}</a></th>
+      <td>{{ party_counts[key] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<table class="counts">
+  <thead>
+    <tr><th></th>{% for s in statuses %}<th>{{ s }}</th>{% endfor %}<th></th></tr>
+  </thead>
+  <tbody>
+    {% for key, t in entity_types.items() %}
+    <tr>
+      <th><a href="/{{ key }}">{{ t.plural }}</a></th>
+      {% for s in statuses %}
+      <td>{% if counts[key][s] %}<a href="/{{ key }}?status={{ s }}">{{ counts[key][s] }}</a>{% else %}<span class="muted">0</span>{% endif %}</td>
+      {% endfor %}
+      <td><a class="button" href="/{{ key }}/new">New {{ t.label }}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

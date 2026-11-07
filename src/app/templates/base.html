@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}LoreWeaver{% endblock %}</title>
+{# Swap 422 validation partials so inline errors show; any other error code never swaps. #}
+<meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true,"error":false},{"code":"[45]..","swap":false,"error":true},{"code":"...","swap":false}]}'>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/htmx.min.js" defer></script>
+</head>
+<body{% if party_view %} class="party-view"{% endif %}>
+{% set here = request.url.path ~ ("?" ~ request.url.query if request.url.query else "") %}
+<header class="site-header">
+  <a class="brand" href="/">LoreWeaver</a>
+  <nav>
+    {% for t in entity_types.values() %}<a href="/{{ t.key }}">{{ t.plural }}</a>{% endfor %}
+  </nav>
+  <div class="view-toggle">
+    <a href="/view/dm?next={{ here|urlencode }}"{% if not party_view %} class="active"{% endif %}>DM view</a>
+    <a href="/view/party?next={{ here|urlencode }}"{% if party_view %} class="active"{% endif %}>Party view</a>
+  </div>
+</header>
+{% if party_view %}
+<p class="party-banner">Party view: showing only canon entries the party knows about, with secrets removed.</p>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

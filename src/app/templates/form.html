@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{% if entity %}Edit {{ entity.name }}{% else %}New {{ etype.label }}{% endif %} · LoreWeaver{% endblock %}
+{% block content %}
+<h1>{% if entity %}Edit {{ etype.label }}{% else %}New {{ etype.label }}{% endif %}</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="{% if entity %}/{{ etype.key }}/{{ entity.id }}{% else %}/{{ etype.key }}{% endif %}" class="entity-form">
+  <label>Name
+    <input type="text" name="name" value="{{ values.name }}" required autofocus>
+  </label>
+
+  {% if not entity %}
+  <label>Status
+    <select name="status">
+      {% for s in statuses %}<option value="{{ s }}"{% if values.status == s %} selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" name="known" value="1"{% if values.known_to_party %} checked{% endif %}>
+    The party knows this exists
+  </label>
+  {% endif %}
+
+  <p class="hint">Wrap anything the party doesn't know in double pipes: <code>||The Reaping Eye was stolen.||</code></p>
+
+  {% for f in etype.fields %}
+  <label>{{ f.label }}
+    {% if f.widget == "textarea" %}
+    <textarea name="{{ f.key }}" rows="4">{{ values.fields.get(f.key, "") }}</textarea>
+    {% else %}
+    <input type="{{ f.widget }}" name="{{ f.key }}" value="{{ values.fields.get(f.key, '') }}">
+    {% endif %}
+  </label>
+  {% endfor %}
+
+  <div class="form-actions">
+    <button type="submit">Save</button>
+    <a href="{% if entity %}/{{ etype.key }}/{{ entity.id }}{% else %}/{{ etype.key }}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% macro link_row(l, arrow_out) %}
+<li{% if not l.known_to_party %} class="secret-link"{% endif %}>
+  {% if arrow_out %}
+  <span class="relation">{{ l.relation_label }} →</span>
+  {% else %}
+  <span class="relation">← {{ l.relation_label }}:</span>
+  {% endif %}
+  <a href="/{{ l.other_type }}/{{ l.other_id }}">{{ l.other_name }}</a>
+  <span class="muted">{{ entity_types[l.other_type].label if l.other_type in entity_types else l.other_type }}</span>
+  {% if not party_view %}
+    {% if l.other_status != "canon" %}<span class="badge badge-{{ l.other_status }}">{{ l.other_status }}</span>{% endif %}
+    {% if not l.other_known %}<span class="badge badge-unknown">unknown entity</span>{% endif %}
+    {% if l.known_to_party %}
+    <button type="button" class="link-action" title="The party knows about this relationship"
+            hx-post="/{{ etype.key }}/{{ entity.id }}/links/{{ l.id }}/known" hx-vals='{"known": "0"}'
+            hx-target="#links" hx-swap="outerHTML">known</button>
+    {% else %}
+    <button type="button" class="link-action secret-toggle" title="Hidden from the party. Click to reveal."
+            hx-post="/{{ etype.key }}/{{ entity.id }}/links/{{ l.id }}/known" hx-vals='{"known": "1"}'
+            hx-target="#links" hx-swap="outerHTML">secret</button>
+    {% endif %}
+    <button type="button" class="link-action"
+            hx-post="/{{ etype.key }}/{{ entity.id }}/links/{{ l.id }}/delete"
+            hx-target="#links" hx-swap="outerHTML" hx-confirm="Remove this link?">remove</button>
+  {% endif %}
+</li>
+{% endmacro %}
+
+<section id="links" class="links">
+  <h2>Links</h2>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {% if links.outgoing or links.incoming %}
+  <ul class="link-list">
+    {% for l in links.outgoing %}{{ link_row(l, true) }}{% endfor %}
+    {% for l in links.incoming %}{{ link_row(l, false) }}{% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No links yet.</p>
+  {% endif %}
+
+  {% if targets and not party_view %}
+  <form class="link-form" hx-post="/{{ etype.key }}/{{ entity.id }}/links" hx-target="#links" hx-swap="outerHTML">
+    <input type="text" name="label" list="relation-labels" placeholder="relation, e.g. member of" required>
+    <datalist id="relation-labels">
+      {% for label in labels %}<option value="{{ label }}">{% endfor %}
+    </datalist>
+    <select name="to_id" required>
+      <option value="">Choose an entity…</option>
+      {% for type_key, group in targets|groupby("type") %}
+      <optgroup label="{{ entity_types[type_key].plural if type_key in entity_types else type_key }}">
+        {% for t in group %}<option value="{{ t.id }}">{{ t.name }}{% if t.status == "draft" %} (draft){% endif %}</option>{% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+    <label class="checkbox"><input type="checkbox" name="known" value="1"> known to party</label>
+    <button type="submit">Add link</button>
+  </form>
+  {% endif %}
+</section>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ etype.plural }} · LoreWeaver{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ etype.plural }}</h1>
+  {% if not party_view %}<a class="button" href="/{{ etype.key }}/new">New {{ etype.label }}</a>{% endif %}
+</div>
+
+{% if not party_view %}
+<nav class="filters">
+  {% for value, label in [(None, "Canon + drafts"), ("canon", "Canon"), ("draft", "Drafts"), ("archived", "Archived"), ("all", "All")] %}
+  <a href="/{{ etype.key }}{% if value %}?status={{ value }}{% endif %}"{% if status_filter == value %} class="active"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+{% if entities %}
+<table class="entities">
+  {% if party_view %}
+  <tbody>
+    {% for e in entities %}
+    <tr><td><a href="/{{ etype.key }}/{{ e.id }}">{{ e.name }}</a></td></tr>
+    {% endfor %}
+  </tbody>
+  {% else %}
+  <thead><tr><th>Name</th><th>Status</th><th>Party</th><th>Updated</th></tr></thead>
+  <tbody>
+    {% for e in entities %}
+    <tr>
+      <td><a href="/{{ etype.key }}/{{ e.id }}">{{ e.name }}</a></td>
+      <td><span class="badge badge-{{ e.status }}">{{ e.status }}</span></td>
+      <td>{% if e.known_to_party %}<span class="badge badge-known">known</span>{% else %}<span class="badge badge-unknown">unknown</span>{% endif %}</td>
+      <td class="muted">{{ e.updated_at|local_time }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% endif %}
+</table>
+{% else %}
+<p class="muted">{% if party_view %}The party knows of nothing here yet.{% else %}Nothing here yet.{% endif %}</p>
+{% endif %}
+{% endblock %}

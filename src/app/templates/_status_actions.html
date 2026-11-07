@@ -1,0 +1,26 @@
+{% set actions = {
+  "draft": "Mark as draft",
+  "canon": "Restore to canon" if entity.status == "archived" else "Promote to canon",
+  "archived": "Archive",
+} %}
+<div id="status-actions" class="status-actions">
+  <span class="badge badge-{{ entity.status }}">{{ entity.status }}</span>
+  {% for s in statuses if s != entity.status %}
+  <button type="button"
+          hx-post="/{{ etype.key }}/{{ entity.id }}/status"
+          hx-vals='{"status": "{{ s }}"}'
+          hx-target="#status-actions"
+          hx-swap="outerHTML"
+          {% if s == "archived" %}hx-confirm="Archive &quot;{{ entity.name }}&quot;? You can restore it later from the Archived filter."{% endif %}>{{ actions[s] }}</button>
+  {% endfor %}
+  <span class="divider"></span>
+  {% if entity.known_to_party %}
+  <span class="badge badge-known">known to party</span>
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "0"}'
+          hx-target="#status-actions" hx-swap="outerHTML">Mark unknown</button>
+  {% else %}
+  <span class="badge badge-unknown">unknown to party</span>
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "1"}'
+          hx-target="#status-actions" hx-swap="outerHTML">Reveal to party</button>
+  {% endif %}
+</div>

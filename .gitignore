@@ -4,3 +4,5 @@ src/content/*
 notes
 __pycache__/
 reference/*.pdf
+data/
+.pytest_cache/
