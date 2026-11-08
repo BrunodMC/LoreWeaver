@@ -7,3 +7,7 @@ reference/*.pdf
 reference/*.txt
 data/
 .pytest_cache/
+# Rulebook photos: copyrighted, never commit
+reference/handbook/
+# ChatGPT exports and other private lore sources
+reference/imports/
