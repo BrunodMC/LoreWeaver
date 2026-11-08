@@ -46,7 +46,7 @@ Anyone can carry it, Havenites especially. It stiffens movement and leaves limit
 ### Lady's veil
 Small white flowers in sunny patches across Fanewick, long used in herbal teas. **One bloom in ten thousand is crimson**; the crimson ones have specific ceremonial uses. Crimson lady's veil is the only known treatment for the Sickness. Endless spring hasn't changed the ratio, so Haven farms the drained bogs at massive scale, and Fanewick reeks of a **sickly sweet smell**.
 
-### Nikta, the Great Owl, Shepherd of the Seasons (she/her)
+### Nikta, the Great Owl, Shepherd of the Seasons (female)
 The most powerful and most widely acknowledged Faint Divinity. She kept Fanewick's cycle by turning her eyes on the land, first for ripening, then ruination. With only the **Sowing Eye** left, she forces everlasting spring. Some Wicklings believe the Withered are Nikta's wrath, sent to drive out Haven and reclaim her Eye.
 
 ### The Witherwild
@@ -62,20 +62,20 @@ Incarnate, local and present. They wander the land and live in homes and village
 
 | God | Domain and current state |
 |---|---|
-| **Fulg, Stacker of Stones** (he) | Tribute of smooth stacked river rocks; makes bivalves and limpets thrive. Willfully ignorant of Fanewick's troubles. |
-| **Hyacynis, They Who Spread Small Blossoms** (they) | Friend of bees and tiny flowers. Their domain has swelled, literally; they **embrace** the Witherwild. |
-| **Ikla, the Sky Painter** (they) | Paints every weekly sunrise and sunset. Lazy and nasty the rest of the week; offended by requests on their time off. |
-| **Oove, Watcher of the Night Bloom** (he) | Never seen, only heard whispering directions to lost night-travelers. Leads offenders and harmers of nocturnal creatures astray. Rumored to live on the moon. |
-| **Qui'Gar, Whispered Sweetness for a Thorny End** (she) | Presides over deaths in thorns and briars. Quiet, rarely visited, now overworked by the Witherwild. |
-| **Rohkin, the Wandering Horn** (he) | Keeper of horned herds; once prevented overhunting. His herds are turning into monsters. |
+| **Fulg, Stacker of Stones** (male) | Tribute of smooth stacked river rocks; makes bivalves and limpets thrive. Willfully ignorant of Fanewick's troubles. |
+| **Hyacynis, They Who Spread Small Blossoms** (gender unspecified) | Friend of bees and tiny flowers. Their domain has swelled, literally; they **embrace** the Witherwild. |
+| **Ikla, the Sky Painter** (gender unspecified) | Paints every weekly sunrise and sunset. Lazy and nasty the rest of the week; offended by requests on their time off. |
+| **Oove, Watcher of the Night Bloom** (male) | Never seen, only heard whispering directions to lost night-travelers. Leads offenders and harmers of nocturnal creatures astray. Rumored to live on the moon. |
+| **Qui'Gar, Whispered Sweetness for a Thorny End** (female) | Presides over deaths in thorns and briars. Quiet, rarely visited, now overworked by the Witherwild. |
+| **Rohkin, the Wandering Horn** (male) | Keeper of horned herds; once prevented overhunting. His herds are turning into monsters. |
 
-**Shun'Aush the Granite Ophid** (he) is dead, but his revenge is the Sickness.
+**Shun'Aush the Granite Ophid** (male) is dead, but his revenge is the Sickness.
 
 ## Frame cast and hooks (optional; not in play unless the bible says so)
 
-- **Archmage Phylax** (they/them): High Magus of Haven, discoverer of the veil cure, and architect of the Eye theft. Whether the party knows about the theft is up to the bible.
-- **Kreil Dirn** (he/him): Haven's beleaguered, unpopular spymaster; roots out insurgents and watches Haven itself. Privately disagreed with the Eye theft and feels grimly vindicated. Mercurial, with possible hidden motives. Has a vast informant network.
-- **The Fanewraith** (she/her): mysterious leader of a secretive, dangerous rebel group. Her plan is to find Nikta and **pluck out the Sowing Eye** to end the endless spring, with no thought for the long-term consequences.
+- **Archmage Phylax** (gender unspecified): High Magus of Haven, discoverer of the veil cure, and architect of the Eye theft. Whether the party knows about the theft is up to the bible.
+- **Kreil Dirn** (male): Haven's beleaguered, unpopular spymaster; roots out insurgents and watches Haven itself. Privately disagreed with the Eye theft and feels grimly vindicated. Mercurial, with possible hidden motives. Has a vast informant network.
+- **The Fanewraith** (female): mysterious leader of a secretive, dangerous rebel group. Her plan is to find Nikta and **pluck out the Sowing Eye** to end the endless spring, with no thought for the long-term consequences.
 - **Alula:** a treetop village; Kreil suspects it's the Fanewraith's base.
 - **Frame inciting incident:** Kreil invites the party to Haven to stop the Fanewraith. Open questions: is his information right, what's his own agenda, and will the party bring her to justice, join her, or go for the Reaping Eye instead?
 

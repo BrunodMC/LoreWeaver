@@ -28,7 +28,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
     for t in (
         EntityType("pc", "PC", "PCs", (
             Field("player", "Player", "text"),
-            Field("pronouns", "Pronouns", "text"),
+            Field("gender", "Gender", "text"),  # free text on purpose: "n/a", "neutral", "a choir of moths"…
             Field("class", "Class", "text"),
             Field("subclass", "Subclass", "text"),
             Field("ancestry", "Ancestry", "text"),
@@ -41,6 +41,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("notes", "Notes"),
         ), default_known=True),
         EntityType("npc", "NPC", "NPCs", (
+            Field("gender", "Gender", "text"),
             Field("appearance", "Appearance"),
             Field("personality", "Personality"),
             Field("secret_or_want", "Secret or want"),
