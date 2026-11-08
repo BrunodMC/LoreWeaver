@@ -83,7 +83,7 @@ def backup_db(keep: int = BACKUPS_TO_KEEP) -> Path | None:
 
 # ── Reads ──────────────────────────────────────────────────────────────────
 
-def _to_dict(row: sqlite3.Row) -> dict:
+def entity_from_row(row: sqlite3.Row) -> dict:
     entity = dict(row)
     entity["fields"] = json.loads(entity["fields"])
     return entity
@@ -91,7 +91,7 @@ def _to_dict(row: sqlite3.Row) -> dict:
 
 def get_entity(conn: sqlite3.Connection, entity_id: int) -> dict | None:
     row = conn.execute("SELECT * FROM entities WHERE id = ?", (entity_id,)).fetchone()
-    return _to_dict(row) if row else None
+    return entity_from_row(row) if row else None
 
 
 def visible_to_party(entity: dict) -> bool:
@@ -127,7 +127,7 @@ def list_entities(conn: sqlite3.Connection, entity_type: str, statuses: tuple[st
         f"SELECT * FROM entities WHERE type = ? AND status IN ({placeholders}){party_filter}",
         (entity_type, *statuses),
     ).fetchall()
-    return sorted((_to_dict(r) for r in rows), key=list_sort_key(entity_type))
+    return sorted((entity_from_row(r) for r in rows), key=list_sort_key(entity_type))
 
 
 def link_targets(conn: sqlite3.Connection, exclude_id: int) -> list[dict]:

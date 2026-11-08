@@ -124,3 +124,21 @@ button:hover, .button:hover { background: #eaeef2; }
   border: 1px solid #c7a3d9;
   vertical-align: middle;
 }
+
+/* ── Search ── */
+.site-search { margin-left: auto; }
+.site-search input { padding: 4px 8px; border: 1px solid var(--border, #ccc); border-radius: 4px; min-width: 14em; font: inherit; }
+.search-results { list-style: none; padding: 0; }
+.search-results > li { padding: 10px 0; border-bottom: 1px solid var(--border, #e5e5e5); }
+.search-results .result-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.search-results .type-tag { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; }
+.search-results .snippet { margin: 4px 0 0; font-size: 0.92em; }
+.search-results .snippet-label { font-weight: 600; margin-right: 4px; }
+mark { background: #fde68a; color: inherit; padding: 0 1px; border-radius: 2px; }
+.search-page-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.search-page-form input[type=search] { flex: 1 1 16em; padding: 6px 8px; font: inherit; }
+@media (max-width: 640px) {
+  .site-header { flex-wrap: wrap; }
+  .site-search { margin-left: 0; width: 100%; }
+  .site-search input { width: 100%; min-width: 0; }
+}

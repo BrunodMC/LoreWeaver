@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{% if query %}{{ query }} · {% endif %}Search · LoreWeaver{% endblock %}
+{% block content %}
+<h1>Search</h1>
+
+<form class="search-page-form" action="/search" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Names, lore, notes…" autofocus>
+  <select name="type" aria-label="Entity type">
+    <option value="">All types</option>
+    {% for key, t in entity_types.items() %}
+    <option value="{{ key }}"{% if type_filter == key %} selected{% endif %}>{{ t.plural }}</option>
+    {% endfor %}
+  </select>
+  {% if not party_view %}
+  <select name="status" aria-label="Status">
+    {% for value, label in [("", "Canon + drafts"), ("canon", "Canon"), ("draft", "Drafts"), ("archived", "Archived"), ("all", "All")] %}
+    <option value="{{ value }}"{% if (status_filter or "") == value %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  <button type="submit">Search</button>
+</form>
+<p class="muted">Matches every word, ignoring case and accents. Use "quotes" for an exact phrase.</p>
+
+{% if query.strip() %}
+  {% if results %}
+  <p class="muted">{{ results|length }} result{{ "" if results|length == 1 else "s" }}</p>
+  <ul class="search-results">
+    {% for r in results %}
+    {% set t = entity_types[r.entity.type] %}
+    <li>
+      <div class="result-head">
+        <a href="/{{ t.key }}/{{ r.entity.id }}">{{ r.name_html }}</a>
+        <span class="muted type-tag">{{ t.label }}</span>
+        {% if not party_view %}
+        <span class="badge badge-{{ r.entity.status }}">{{ r.entity.status }}</span>
+        {% if r.entity.known_to_party %}<span class="badge badge-known">known</span>{% else %}<span class="badge badge-unknown">unknown</span>{% endif %}
+        {% endif %}
+      </div>
+      {% for label, html in r.snippets %}
+      <p class="snippet"><span class="snippet-label">{{ label }}:</span>{{ html }}</p>
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">{% if party_view %}The party knows of nothing matching that.{% else %}Nothing matches.{% endif %}</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

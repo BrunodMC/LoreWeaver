@@ -16,6 +16,10 @@
   <nav>
     {% for t in entity_types.values() %}<a href="/{{ t.key }}">{{ t.plural }}</a>{% endfor %}
   </nav>
+  <form class="site-search" action="/search" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the bible…" aria-label="Search"
+           value="{{ query if query is defined else '' }}">
+  </form>
   <div class="view-toggle">
     <a href="/view/dm?next={{ here|urlencode }}"{% if not party_view %} class="active"{% endif %}>DM view</a>
     <a href="/view/party?next={{ here|urlencode }}"{% if party_view %} class="active"{% endif %}>Party view</a>

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import db, knowledge
+from .. import db, knowledge, search as search_mod
 from ..entity_types import ENTITY_TYPES, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -141,6 +141,20 @@ async def index(request: Request, conn: Conn):
         "counts": db.status_counts(conn),
         "party_counts": db.party_counts(conn),
         "statuses": STATUSES,
+    })
+
+
+@router.get("/search", response_class=HTMLResponse)
+async def search(request: Request, conn: Conn, q: str = "", status: str | None = None,
+                 type: str | None = None):
+    if status not in STATUS_FILTERS:
+        status = None
+    if type not in ENTITY_TYPES:
+        type = None
+    party_view = is_party_view(request)
+    results = search_mod.search(conn, q, STATUS_FILTERS[status], party_view, type)
+    return render(request, "search.html", {
+        "query": q, "results": results, "status_filter": status, "type_filter": type,
     })
 
 
