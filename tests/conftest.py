@@ -3,8 +3,16 @@ from contextlib import closing
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app import db
+from src.app import db, llm
 from src.app.main import create_app
+
+
+@pytest.fixture(autouse=True)
+def no_real_llm_calls():
+    """Every test starts on an unscripted fake: an LLM call nobody scripted fails instead of spending quota."""
+    llm.set_backend(llm.FakeBackend())
+    yield
+    llm.set_backend(None)
 
 
 @pytest.fixture(autouse=True)
