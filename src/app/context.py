@@ -36,7 +36,7 @@ Write every field as if it might one day be shown to the players, and wrap whate
 
 ## Craft
 - Ground everything. The best draft makes the existing world more connected, not just bigger: tie it to existing people, places, factions and threads.
-- Invent freely at small scale (a cousin, a tavern, a grudge). Never redefine gods, history or the nature of established things. If your draft implies something new about an existing canon entry, say so in dm_notes.
+- Invent freely at small scale (a cousin, a tavern, a grudge). Never redefine gods, history or the nature of established things. Whenever your draft assumes or implies something new about an existing entry (a name, a past event, a hidden fact), list it in canon_implications: one item per entry and claim, so the GM can accept or reject each.
 - Be specific and playable. Concrete details the GM can say aloud beat mood. Every entry needs something the party can push on: a want, a lever, a problem.
 - Match the length and density of comparable entries in the bible. A prep sheet, not a novel.
 - Match the tone the bible establishes, not generic fantasy.
@@ -144,7 +144,7 @@ def user_prompt(entity_type: str, brief: str, anchors: list[dict],
             "Change only what the notes ask for, plus anything they force for consistency. "
             "Return only the fields you changed; fields you leave out are kept exactly as they are. "
             "Leave out the name too unless you change it. Always return concept, proposed_links, "
-            "open_threads_touched and dm_notes in full for this version.",
+            "open_threads_touched, canon_implications and dm_notes in full for this version.",
         ]
     return "\n".join(lines)
 
@@ -171,7 +171,7 @@ def output_schema(entity_type: str, partial: bool = False) -> dict:
         "type": "object", "properties": props, "additionalProperties": False,
         "required": [] if partial else list(props),
     }
-    required = ["concept", "fields", "proposed_links", "open_threads_touched", "dm_notes"]
+    required = ["concept", "fields", "proposed_links", "open_threads_touched", "canon_implications", "dm_notes"]
     if not partial:
         required.insert(1, "name")
     return {
@@ -209,9 +209,23 @@ def output_schema(entity_type: str, partial: bool = False) -> dict:
                     },
                 },
             },
+            "canon_implications": {
+                "type": "array",
+                "items": {
+                    "type": "object", "additionalProperties": False,
+                    "required": ["entry_id", "implication"],
+                    "properties": {
+                        "entry_id": {"type": "integer", "description": "Id of the existing entry this is about."},
+                        "implication": {"type": "string",
+                                        "description": "One new claim about that entry, as a sentence the GM could "
+                                                       "paste into its notes."},
+                    },
+                },
+            },
             "dm_notes": {"type": "string",
-                         "description": "Your reasoning and how to use this at the table; frame material and "
-                                        "implications for existing entries. The GM only."},
+                         "description": "Your reasoning and how to use this at the table, and any frame material "
+                                        "you leaned on. The GM only. Don't repeat canon_implications or "
+                                        "open_threads_touched here: those are reviewed separately."},
         },
     }
 
@@ -228,11 +242,12 @@ class Draft:
     open_threads: list[dict]
     dm_notes: str
     problems: list[str] = field(default_factory=list)  # empty means valid
+    implications: list[dict] = field(default_factory=list)
 
     def as_output(self) -> dict:
         return {"concept": self.concept, "name": self.name, "fields": self.fields,
                 "proposed_links": self.proposed_links, "open_threads_touched": self.open_threads,
-                "dm_notes": self.dm_notes}
+                "canon_implications": self.implications, "dm_notes": self.dm_notes}
 
 
 def barred(text: str) -> str:
@@ -319,7 +334,19 @@ def check(data: dict, entity_type: str, entities: list[dict], anchors: list[dict
 
     # The model's notes stay out of the entry: they're review material, kept in the generation history
     # and shown in the review panel. Notes (carried over from `current` on regeneration) are the GM's.
-    return Draft(concept=str(data.get("concept", "")).strip(), name=name, fields=fields,
+    implications = []
+    for item in data.get("canon_implications") or []:
+        target = by_id.get(item.get("entry_id"))
+        if target is None:
+            problems.append(f"canon_implications names entry #{item.get('entry_id')}, which isn't in the bible.")
+            continue
+        # it becomes a barred note on that entry, so nested markers would break the bars
+        text = str(item.get("implication", "")).replace(knowledge.MARKER, "").strip()
+        if text:
+            implications.append({"entry_id": target["id"], "entry_type": target["type"], "entry": ref(target),
+                                 "implication": text})
+
+    return Draft(concept=str(data.get("concept", "")).strip(), name=name, fields=fields, implications=implications,
                  proposed_links=links, open_threads=threads,
                  dm_notes=str(data.get("dm_notes", "")).strip(), problems=problems)
 

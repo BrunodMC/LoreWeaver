@@ -27,12 +27,11 @@
 <ul class="inbox">
   {% for item in pending %}
   {% set e = item.entity %}{% set r = item.review %}
-  {% set threads = r.source.output.open_threads_touched if r.source else [] %}
   <li class="inbox-item">
     <div class="inbox-title">
       <span class="type-tag">{{ entity_types[e.type].label }}</span>
       <a href="/{{ e.type }}/{{ e.id }}">{{ e.name }}</a>
-      {% if threads %}<span class="badge badge-draft" title="Proposes answers to open threads">⚠ {{ threads|length }} open thread{{ "s" if threads|length != 1 }}</span>{% endif %}
+      {% if r.open_decisions %}<span class="badge badge-draft" title="Unsettled questions and claims about existing entries">⚠ {{ r.open_decisions }} decision{{ "s" if r.open_decisions != 1 }}</span>{% endif %}
       {% if r.versions|length > 1 %}<span class="badge badge-edit">{{ r.versions|length }} versions</span>{% endif %}
       <span class="hint">{{ item.updated|local_time }}</span>
     </div>

@@ -193,8 +193,58 @@ def review_state(conn, entity: dict) -> dict | None:
     upto = current["id"] if current else versions[-1]["id"]
     source = next((v for v in reversed(versions) if v["kind"] == "generated" and v["id"] <= upto), None)
     first = next((v for v in versions if v["kind"] == "generated"), None)
+    found = decisions(source["output"]) if source else []
     return {"lineage": lineage, "versions": versions, "current": current, "source": source,
-            "brief": first["brief"] if first else "", "anchors": source["anchors"] if source else []}
+            "brief": first["brief"] if first else "", "anchors": source["anchors"] if source else [],
+            "decisions": found, "open_decisions": sum(1 for d in found if not d["state"]),
+            "rejected_text": "\n".join(f"Drop this: {d['text']}" for d in found if d["state"] == "rejected")}
+
+
+# ── Decisions: what a draft asks the GM to settle ──────────────────────────
+
+def decisions(output: dict) -> list[dict]:
+    """Open threads the draft answers and claims it makes about existing entries, as one checklist.
+    Keys are stable per version (t0, t1… for threads, c0, c1… for implications)."""
+    state = output.get("decision_state", {})
+    found = []
+    for i, t in enumerate(output.get("open_threads_touched", [])):
+        found.append({"key": f"t{i}", "kind": "thread", "entry_id": t["entry_id"], "entry_type": t.get("entry_type"),
+                      "entry": t["entry"], "title": t["thread"], "text": t["proposal"], "state": state.get(f"t{i}")})
+    for i, c in enumerate(output.get("canon_implications", [])):
+        found.append({"key": f"c{i}", "kind": "implication", "entry_id": c["entry_id"],
+                      "entry_type": c.get("entry_type"), "entry": c["entry"], "title": "",
+                      "text": c["implication"], "state": state.get(f"c{i}")})
+    return found
+
+
+def note_line(source_name: str, decision: dict) -> str:
+    """The barred line an accepted decision leaves on the entry it's about. Source, no date: the
+    drafting history already records when."""
+    if decision["kind"] == "thread":
+        text = f"From {source_name}, on “{decision['title']}”: {decision['text']}"
+    else:
+        text = f"From {source_name}: {decision['text']}"
+    return context.barred(text)
+
+
+def resolve(conn, entity: dict, source: dict, key: str, accept: bool) -> None:
+    """Accept (note it on the entry it's about) or reject (feed the next regeneration) one decision."""
+    decision = next((d for d in decisions(source["output"]) if d["key"] == key), None)
+    if decision is None:
+        raise GenerationFailed("No such decision on this draft.")
+    if decision["state"]:
+        return  # already settled; clicking twice must not add the note twice
+    if accept:
+        target = db.get_entity(conn, decision["entry_id"])
+        if target is None:
+            raise GenerationFailed(f"{decision['entry']} no longer exists.")
+        fields = dict(target["fields"])
+        fields["notes"] = "\n\n".join(p for p in (fields.get("notes", "").strip(),
+                                                   note_line(entity["name"], decision)) if p)
+        db.update_entity(conn, target["id"], target["name"], fields)
+    output = source["output"]
+    output.setdefault("decision_state", {})[key] = "accepted" if accept else "rejected"
+    db.update_generation_output(conn, source["id"], output)
 
 
 def pending_drafts(conn) -> list[dict]:

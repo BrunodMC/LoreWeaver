@@ -330,7 +330,7 @@ def get_generation(conn: sqlite3.Connection, generation_id: int) -> dict | None:
 
 
 def update_generation_output(conn: sqlite3.Connection, generation_id: int, output: dict) -> None:
-    """For data fixes only: versions are otherwise write-once."""
+    """Versions' content is write-once; this is for data fixes and for recording the GM's decisions."""
     with conn:
         conn.execute("UPDATE generations SET output = ? WHERE id = ?", (json.dumps(output), generation_id))
 

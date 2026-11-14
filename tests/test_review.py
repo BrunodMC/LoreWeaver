@@ -64,7 +64,7 @@ def test_ai_draft_shows_the_review_panel_instead_of_plain_promotion(client, worl
     page = client.get(f"/npc/{draft_id}").text
     assert "AI draft under review" in page
     assert "Brief:</span> a ferry pilot" in page and "A ferry pilot who knows too much." in page
-    assert "proposes answers to open threads" in page and f'href="/arc/{world["todo"]}"' in page
+    assert "Decisions for you" in page and f'href="/arc/{world["todo"]}"' in page
     assert f'href="/faction/{world["guild"]}"' in page and "works for" in page
     assert ">Promote to canon</button>" in page
     assert '"status": "canon"' not in page  # the plain status button is gone
@@ -131,7 +131,7 @@ def test_regenerate_versions_and_restore(client, world, draft_id):
 
     page = client.get(f"/npc/{draft_id}").text
     assert "3 / 3" in page and "darker hook" in page
-    assert "proposes answers to open threads" not in page  # the new version touched none
+    assert "Decisions for you" not in page  # the new version touched none
 
     first = client.get(f"/npc/{draft_id}/versions/{history[0]['id']}").text
     assert "1 / 3" in first and "Use this version" in first and "AI attempt" in first
@@ -156,7 +156,7 @@ def test_inbox_lists_ai_drafts_awaiting_review(client, world, draft_id):
     page = client.get("/drafts").text
     assert f'href="/npc/{draft_id}"' in page and "Ossa Grell" in page
     assert "Brief: a ferry pilot" in page and "A ferry pilot who knows too much." in page
-    assert "1 open thread" in page
+    assert "1 decision" in page
     assert "Open threads" not in page  # hand-made drafts aren't AI drafts under review
 
     client.post(f"/npc/{draft_id}/promote")
@@ -236,3 +236,49 @@ def test_legacy_notes_move_out_of_entries_but_gm_writing_stays(client, world):
         assert db.get_entity(conn, kept)["fields"]["notes"] == "||Old AI notes.|| Plus mine."
         # the version in place still matches the entry, so the panel doesn't see a phantom edit
         assert generation.review_state(conn, db.get_entity(conn, old))["current"]["id"] == lineage
+
+
+def implicating(world, **overrides):
+    return answer(world, canon_implications=[
+        {"entry_id": world["mara"], "implication": "Mara once ||secretly|| ran the ferry herself."}], **overrides)
+
+
+def test_decisions_list_threads_and_implications(client, world):
+    script(implicating(world))
+    draft = generation.start(generation.GenerationRequest("npc", "a ferry pilot", [world["guild"]])).entity_id
+    page = client.get(f"/npc/{draft}").text
+    assert "open thread" in page and "Ossa did." in page
+    assert f'href="/npc/{world["mara"]}"' in page and "Mara once secretly ran the ferry herself." in page
+    assert page.count("✓ Accept") == 2 and "2 decisions" in client.get("/drafts").text
+
+
+def test_accept_notes_the_claim_on_its_entry_once_and_without_a_date(client, world):
+    script(implicating(world))
+    draft = generation.start(generation.GenerationRequest("npc", "a ferry pilot", [world["guild"]])).entity_id
+    with closing(db.get_connection()) as conn:
+        db.update_entity(conn, world["mara"], "Mara Vell", {"notes": "My own note."})
+    client.post(f"/npc/{draft}/decisions/c0/accept")
+    client.post(f"/npc/{draft}/decisions/c0/accept")  # a double click adds nothing
+    client.post(f"/npc/{draft}/decisions/t0/accept")
+
+    assert entity(world["mara"])["fields"]["notes"] == (
+        "My own note.\n\n||From Ossa Grell: Mara once secretly ran the ferry herself.||")
+    assert entity(world["todo"])["fields"]["notes"] == (
+        "Who sank the barge?\n\n||From Ossa Grell, on “Who sank the barge?”: Ossa did.||")
+    page = client.get(f"/npc/{draft}").text
+    assert page.count("accepted · noted on that entry") == 2 and "✓ Accept" not in page
+    assert "decision" not in client.get("/drafts").text.split("Ossa Grell")[1].split("</li>")[0]
+
+
+def test_reject_prefills_the_next_regeneration(client, world, draft_id):
+    client.post(f"/npc/{draft_id}/decisions/t0/reject")
+    page = client.get(f"/npc/{draft_id}").text
+    assert ">Drop this: Ossa did.</textarea>" in page and "rejections included" in page
+    assert "Ossa did." not in entity(world["todo"])["fields"]["notes"]
+
+
+def test_bad_decisions_are_404_and_only_drafts_decide(client, world, draft_id):
+    assert client.post(f"/npc/{draft_id}/decisions/c9/accept").status_code == 404
+    assert client.post(f"/npc/{draft_id}/decisions/t0/shrug").status_code == 404
+    client.post(f"/npc/{draft_id}/promote")
+    assert client.post(f"/npc/{draft_id}/decisions/t0/accept").status_code == 409

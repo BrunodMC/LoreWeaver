@@ -166,3 +166,19 @@ def test_barred_strips_inner_markers_and_handles_empty():
 def test_retry_prompt_lists_problems():
     prompt = context.retry_prompt("Draft a new NPC.", ["The draft has no name."])
     assert prompt.startswith("Draft a new NPC.") and "- The draft has no name." in prompt
+
+
+def test_check_validates_canon_implications(conn, bible):
+    entities = context.context_entities(conn)
+    data = answer(canon_implications=[
+        {"entry_id": bible["mara"], "implication": "  Mara ||secretly|| owns a boat. "},
+        {"entry_id": 999, "implication": "x"},
+        {"entry_id": bible["guild"], "implication": "   "},
+    ])
+    draft = context.check(data, "npc", entities, [])
+    assert draft.implications == [{"entry_id": bible["mara"], "entry_type": "npc",
+                                   "entry": f"[npc #{bible['mara']}] Mara Vell", "implication": "Mara secretly owns a boat."}]
+    assert any("#999" in p for p in draft.problems)
+    assert draft.as_output()["canon_implications"] == draft.implications
+    assert "canon_implications" in context.output_schema("npc")["required"]
+    assert "canon_implications" in context.SYSTEM_PREAMBLE

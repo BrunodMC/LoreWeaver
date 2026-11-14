@@ -83,6 +83,19 @@ async def promote(request: Request, type_key: str, entity_id: int, conn: Conn):
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
+@router.post("/{type_key}/{entity_id}/decisions/{key}/{action}")
+async def decide(request: Request, type_key: str, entity_id: int, key: str, action: str, conn: Conn):
+    """Accept a decision (a DM-only note on the entry it's about) or reject it (pre-fills regeneration)."""
+    entity, review = reviewable(request, conn, type_key, entity_id)
+    if action not in ("accept", "reject") or review["source"] is None:
+        raise HTTPException(404, "No such decision")
+    try:
+        generation.resolve(conn, entity, review["source"], key, accept=action == "accept")
+    except generation.GenerationFailed as exc:
+        raise HTTPException(404, str(exc)) from None
+    return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
+
+
 @router.post("/{type_key}/{entity_id}/discard")
 async def discard(request: Request, type_key: str, entity_id: int, conn: Conn):
     entity, _ = reviewable(request, conn, type_key, entity_id)
