@@ -1,0 +1,16 @@
+{% if results %}
+<ul class="anchor-results">
+  {% for r in results %}
+  <li>
+    <button type="button"
+            hx-get="/generate/anchor-chip/{{ r.entity.id }}" hx-target="#anchor-chips" hx-swap="beforeend"
+            hx-on::after-request="document.getElementById('anchor-results').innerHTML = ''; document.getElementById('anchor-q').value = ''">
+      <span class="type-tag">{{ entity_types[r.entity.type].label }}</span> {{ r.name_html }}
+      {% if r.entity.status == "draft" %}<span class="badge badge-draft">undecided</span>{% endif %}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+{% elif query.strip() %}
+<p class="hint">Nothing in the AI context matches “{{ query }}”.</p>
+{% endif %}

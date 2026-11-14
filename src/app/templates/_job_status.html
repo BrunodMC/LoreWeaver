@@ -1,0 +1,13 @@
+{% if job.status == "failed" %}
+<div id="job-status" class="job-status job-failed">
+  <p class="error">The draft didn't come through.</p>
+  <pre class="job-error">{{ job.error }}</pre>
+  <p><a class="button" href="{{ retry_url }}">Try again with the same brief</a></p>
+</div>
+{% else %}
+<div id="job-status" class="job-status"
+     hx-get="/generate/jobs/{{ job.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p><span class="spinner" aria-hidden="true"></span> Claude is reading the bible and drafting… {{ job.elapsed }}s</p>
+  <p class="hint">{% if job.request.deep %}Thinking harder: usually around 2 minutes.{% else %}Usually about a minute.{% endif %} This page moves to the draft when it lands. Leaving it doesn't stop the generation.</p>
+</div>
+{% endif %}

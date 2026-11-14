@@ -1,0 +1,5 @@
+<span class="chip">
+  <input type="hidden" name="anchor" value="{{ anchor.id }}">
+  <span class="type-tag">{{ entity_types[anchor.type].label }}</span> {{ anchor.name }}
+  <button type="button" class="chip-remove" aria-label="Remove {{ anchor.name }}" onclick="this.parentElement.remove()">×</button>
+</span>

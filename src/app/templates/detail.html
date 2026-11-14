@@ -6,7 +6,14 @@
     <p class="muted"><a href="/{{ etype.key }}">{{ etype.plural }}</a></p>
     <h1>{{ entity.name }}</h1>
   </div>
-  {% if not party_view %}<a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>{% endif %}
+  {% if not party_view %}
+  <div class="page-actions">
+    {% if entity.status == "canon" or (entity.status == "draft" and entity.ai_context) %}
+    <a class="button" href="/generate?anchor={{ entity.id }}" title="Generate a new entry tied to this one">✦ Spin off</a>
+    {% endif %}
+    <a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>
+  </div>
+  {% endif %}
 </div>
 
 {% if not party_view %}{% include "_status_actions.html" %}{% endif %}

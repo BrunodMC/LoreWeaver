@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Weaving… · LoreWeaver{% endblock %}
+{% block content %}
+<h1>Weaving a new {{ etype.label }}</h1>
+<dl class="fields">
+  <dt>Brief</dt><dd class="field-value">{% if job.request.brief %}{{ job.request.brief }}{% else %}<span class="muted">—</span>{% endif %}</dd>
+</dl>
+{% include "_job_status.html" %}
+{% endblock %}

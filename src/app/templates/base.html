@@ -15,6 +15,7 @@
   <a class="brand" href="/">LoreWeaver</a>
   <nav>
     {% for t in entity_types.values() %}<a href="/{{ t.key }}">{{ t.plural }}</a>{% endfor %}
+    {% if not party_view %}<a href="/generate" class="nav-generate">✦ Generate</a>{% endif %}
   </nav>
   <form class="site-search" action="/search" method="get" role="search">
     <input type="search" name="q" placeholder="Search the bible…" aria-label="Search"

@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import db
-from .routes import entities
+from .routes import entities, generate
 
 APP_DIR = Path(__file__).parent
 
@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="LoreWeaver", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
+    app.include_router(generate.router)  # first: the entity routes' /{type_key} would swallow /generate
     app.include_router(entities.router)
     return app
 
