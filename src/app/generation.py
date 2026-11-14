@@ -197,6 +197,24 @@ def review_state(conn, entity: dict) -> dict | None:
             "brief": first["brief"] if first else "", "anchors": source["anchors"] if source else []}
 
 
+def pending_drafts(conn) -> list[dict]:
+    """AI drafts awaiting review, newest activity first, each with its review state."""
+    rows = conn.execute(
+        "SELECT e.* FROM entities e WHERE e.status = 'draft' "
+        "AND EXISTS (SELECT 1 FROM generations g WHERE g.entity_id = e.id)"
+    ).fetchall()
+    pending = []
+    for row in rows:
+        entity = db.entity_from_row(row)
+        review = review_state(conn, entity)
+        pending.append({"entity": entity, "review": review, "updated": review["versions"][-1]["created_at"]})
+    return sorted(pending, key=lambda p: p["updated"], reverse=True)
+
+
+def running_jobs() -> list[Job]:
+    return [job for job in list(JOBS.values()) if job.status == "running"]
+
+
 def restore(conn, entity: dict, version: dict) -> None:
     """Put an earlier version back in place, keeping the current state in the history first."""
     snapshot_if_edited(conn, entity)

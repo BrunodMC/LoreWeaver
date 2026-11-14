@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Drafts to review · LoreWeaver{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Drafts to review</h1>
+    <p class="muted">AI drafts waiting for you to promote, regenerate or discard. Hand-made drafts live in each list's Draft filter.</p>
+  </div>
+  <a class="button" href="/generate">✦ Generate</a>
+</div>
+
+{% if running %}
+<h2>Weaving now</h2>
+<ul class="inbox">
+  {% for job in running %}
+  <li class="inbox-item">
+    <a href="/generate/jobs/{{ job.id }}"><span class="spinner" aria-hidden="true"></span>
+      {{ entity_types[job.request.entity_type].label }}{% if job.request.entity_id %} (regenerating){% endif %}</a>
+    <span class="hint">{{ job.elapsed }}s</span>
+    {% if job.request.brief %}<p class="hint">{{ job.request.brief }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if pending %}
+<ul class="inbox">
+  {% for item in pending %}
+  {% set e = item.entity %}{% set r = item.review %}
+  {% set threads = r.source.output.open_threads_touched if r.source else [] %}
+  <li class="inbox-item">
+    <div class="inbox-title">
+      <span class="type-tag">{{ entity_types[e.type].label }}</span>
+      <a href="/{{ e.type }}/{{ e.id }}">{{ e.name }}</a>
+      {% if threads %}<span class="badge badge-draft" title="Proposes answers to open threads">⚠ {{ threads|length }} open thread{{ "s" if threads|length != 1 }}</span>{% endif %}
+      {% if r.versions|length > 1 %}<span class="badge badge-edit">{{ r.versions|length }} versions</span>{% endif %}
+      <span class="hint">{{ item.updated|local_time }}</span>
+    </div>
+    {% if r.brief %}<p class="hint">Brief: {{ r.brief }}</p>{% endif %}
+    {% if r.source and r.source.output.concept %}<p>{{ r.source.output.concept }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% elif not running %}
+<p class="muted">Nothing waiting. The loom is idle.</p>
+{% endif %}
+{% endblock %}

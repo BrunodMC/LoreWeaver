@@ -28,6 +28,15 @@ def version_or_404(review: dict, version_id: int) -> dict:
     return version
 
 
+@router.get("/drafts", response_class=HTMLResponse)
+async def inbox(request: Request, conn: Conn):
+    """Every AI draft awaiting review, so nothing generated at 1 a.m. becomes forgotten furniture."""
+    dm_only(request)
+    return render(request, "drafts.html", {
+        "pending": generation.pending_drafts(conn), "running": generation.running_jobs(),
+    })
+
+
 @router.get("/{type_key}/{entity_id}/versions/{version_id}", response_class=HTMLResponse)
 async def version_view(request: Request, type_key: str, entity_id: int, version_id: int, conn: Conn):
     entity, review = reviewable(request, conn, type_key, entity_id)

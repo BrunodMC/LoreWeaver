@@ -150,3 +150,27 @@ def test_review_routes_are_dm_only_and_check_their_targets(client, world, draft_
     client.get("/view/party")
     assert client.post(f"/npc/{draft_id}/promote").status_code == 404
     assert client.post(f"/npc/{draft_id}/discard").status_code == 404
+
+
+def test_inbox_lists_ai_drafts_awaiting_review(client, world, draft_id):
+    page = client.get("/drafts").text
+    assert f'href="/npc/{draft_id}"' in page and "Ossa Grell" in page
+    assert "Brief: a ferry pilot" in page and "A ferry pilot who knows too much." in page
+    assert "1 open thread" in page
+    assert "Open threads" not in page  # hand-made drafts aren't AI drafts under review
+
+    client.post(f"/npc/{draft_id}/promote")
+    assert "Ossa Grell" not in client.get("/drafts").text
+    assert "The loom is idle" in client.get("/drafts").text
+
+
+def test_inbox_shows_running_generations(client, world, monkeypatch):
+    job = generation.Job(id="abc123", request=generation.GenerationRequest("adversary", "river wyrm"))
+    monkeypatch.setitem(generation.JOBS, job.id, job)
+    page = client.get("/drafts").text
+    assert "Weaving now" in page and 'href="/generate/jobs/abc123"' in page and "river wyrm" in page
+
+
+def test_inbox_is_dm_only(client):
+    client.get("/view/party")
+    assert client.get("/drafts").status_code == 404
