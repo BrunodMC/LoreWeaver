@@ -297,7 +297,7 @@ def check(data: dict, entity_type: str, entities: list[dict], anchors: list[dict
         if key in seen:
             continue
         seen.add(key)
-        links.append({"target_id": target["id"], "target": ref(target),
+        links.append({"target_id": target["id"], "target_type": target["type"], "target": ref(target),
                       "direction": "to_new" if link.get("direction") == "to_new" else "from_new",
                       "label": label, "party_knows": bool(link.get("party_knows")),
                       "why": str(link.get("why", "")).strip()})
@@ -313,7 +313,7 @@ def check(data: dict, entity_type: str, entities: list[dict], anchors: list[dict
             problems.append(f"open_threads_touched names entry #{thread.get('entry_id')}, "
                             "which isn't an UNDECIDED entry.")
             continue
-        threads.append({"entry_id": holder["id"], "entry": ref(holder),
+        threads.append({"entry_id": holder["id"], "entry_type": holder["type"], "entry": ref(holder),
                         "thread": str(thread.get("thread", "")).strip(),
                         "proposal": str(thread.get("proposal", "")).strip()})
 

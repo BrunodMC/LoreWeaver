@@ -147,3 +147,71 @@ def start(request: GenerationRequest) -> Job:
 
 def get_job(job_id: str) -> Job | None:
     return JOBS.get(job_id)
+
+
+# ── Reviewing a draft's versions ───────────────────────────────────────────
+
+def same_state(entity: dict, version: dict) -> bool:
+    out = version["output"]
+    return out.get("name") == entity["name"] and out.get("fields") == entity["fields"]
+
+
+def changed_keys(previous: dict | None, output: dict) -> set[str]:
+    if previous is None:
+        return set()
+    before, after = previous.get("fields", {}), output.get("fields", {})
+    changed = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    if previous.get("name") != output.get("name"):
+        changed.add("name")
+    return changed
+
+
+def _fill_target_types(conn, output: dict) -> None:
+    """Drafts generated before target types were stored lack them; look them up (None if deleted)."""
+    for items, id_key, type_key in ((output.get("proposed_links", []), "target_id", "target_type"),
+                                    (output.get("open_threads_touched", []), "entry_id", "entry_type")):
+        for item in items:
+            if type_key not in item:
+                target = db.get_entity(conn, item[id_key])
+                item[type_key] = target["type"] if target else None
+
+
+def review_state(conn, entity: dict) -> dict | None:
+    """Everything the review panel needs, or None if the draft has no generation history."""
+    lineage = db.lineage_for_entity(conn, entity["id"])
+    if lineage is None:
+        return None
+    versions = db.lineage_versions(conn, lineage)
+    for i, v in enumerate(versions):
+        _fill_target_types(conn, v["output"])
+        v["number"] = i + 1
+        v["changed"] = changed_keys(versions[i - 1]["output"] if i else None, v["output"])
+        v["is_current"] = same_state(entity, v)
+    current = next((v for v in reversed(versions) if v["is_current"]), None)
+    # Links and threads under review come from the generated version now in place, or the latest one
+    # behind the GM's edits (an edit snapshot carries no proposals of its own).
+    upto = current["id"] if current else versions[-1]["id"]
+    source = next((v for v in reversed(versions) if v["kind"] == "generated" and v["id"] <= upto), None)
+    first = next((v for v in versions if v["kind"] == "generated"), None)
+    return {"lineage": lineage, "versions": versions, "current": current, "source": source,
+            "brief": first["brief"] if first else "", "anchors": source["anchors"] if source else []}
+
+
+def restore(conn, entity: dict, version: dict) -> None:
+    """Put an earlier version back in place, keeping the current state in the history first."""
+    snapshot_if_edited(conn, entity)
+    out = version["output"]
+    db.update_entity(conn, entity["id"], out["name"], out["fields"])
+
+
+def promote(conn, entity: dict, links: list[dict]) -> int:
+    """Make the draft canon and create the chosen proposed links. Returns how many links were made."""
+    made = 0
+    for link in links:
+        target = db.get_entity(conn, link["target_id"])
+        if target is None or target["id"] == entity["id"]:
+            continue  # the target was deleted after the draft was generated
+        ends = (entity["id"], target["id"]) if link["direction"] == "from_new" else (target["id"], entity["id"])
+        made += db.add_link(conn, *ends, link["label"], known=link["party_knows"])
+    db.set_status(conn, entity["id"], "canon")
+    return made

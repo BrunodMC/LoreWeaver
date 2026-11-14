@@ -1,0 +1,66 @@
+{% set source = review.source %}
+{% set proposals = source.output.proposed_links if source else [] %}
+{% set threads = source.output.open_threads_touched if source else [] %}
+<section class="review-panel">
+  <h2>✦ AI draft under review</h2>
+  {% if review.brief %}<p><span class="muted">Brief:</span> {{ review.brief }}</p>{% endif %}
+  {% if source and source.output.concept %}<p><span class="muted">Pitch:</span> {{ source.output.concept }}</p>{% endif %}
+
+  {% if threads %}
+  <div class="callout">
+    <strong>⚠ This draft proposes answers to open threads.</strong> Promoting it doesn't settle them; update the to-do entry if you accept.
+    <ul>
+      {% for t in threads %}
+      <li>{% if t.entry_type %}<a href="/{{ t.entry_type }}/{{ t.entry_id }}">{{ t.entry }}</a>{% else %}{{ t.entry }}{% endif %}: <em>{{ t.thread }}</em><br>→ {{ t.proposal }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/{{ etype.key }}/{{ entity.id }}/promote" class="promote-form">
+    {% if proposals %}
+    <p class="field-label">Proposed links <span class="hint">ticked links are created when you promote</span></p>
+    <ul class="proposals">
+      {% for link in proposals %}
+      <li>
+        <label class="checkbox">
+          <input type="checkbox" name="link" value="{{ loop.index0 }}" checked>
+          <span>
+            {% if link.direction == "from_new" %}<strong>{{ entity.name }}</strong> {{ link.label }} {% if link.target_type %}<a href="/{{ link.target_type }}/{{ link.target_id }}">{{ link.target }}</a>{% else %}{{ link.target }} <span class="hint">(deleted)</span>{% endif %}
+            {% else %}{% if link.target_type %}<a href="/{{ link.target_type }}/{{ link.target_id }}">{{ link.target }}</a>{% else %}{{ link.target }} <span class="hint">(deleted)</span>{% endif %} {{ link.label }} <strong>{{ entity.name }}</strong>{% endif %}
+            {% if link.party_knows %}<span class="badge badge-known">party knows</span>{% endif %}
+            {% if link.why %}<br><span class="hint">{{ link.why }}</span>{% endif %}
+          </span>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="hint">No links proposed.</p>
+    {% endif %}
+    <div class="form-actions">
+      <button type="submit" class="primary">Promote to canon</button>
+      <span class="hint">It stays unknown to the party until you reveal it.</span>
+    </div>
+  </form>
+
+  <details class="regenerate">
+    <summary>Regenerate with notes</summary>
+    <form method="post" action="/{{ etype.key }}/{{ entity.id }}/regenerate" class="entity-form">
+      <label>What to change
+        <textarea name="notes" rows="3" placeholder="e.g. keep the stat block, but make her abilities about roots instead of fire"></textarea>
+      </label>
+      <p class="hint">Fields the notes don't touch are kept exactly as they are, your edits included. The current state is saved in the history first.</p>
+      <label class="checkbox"><input type="checkbox" name="deep" value="1"> Think harder (slower)</label>
+      <div class="form-actions"><button type="submit">Regenerate</button></div>
+    </form>
+  </details>
+
+  <form method="post" action="/{{ etype.key }}/{{ entity.id }}/discard" class="discard-form"
+        onsubmit="return confirm('Discard this draft? It is deleted from the bible; its text stays in the generation log.')">
+    <button type="submit" class="danger">Discard draft</button>
+  </form>
+
+  {% set version = review.current or review.versions[-1] %}
+  {% include "_version_view.html" %}
+</section>

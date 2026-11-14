@@ -130,11 +130,11 @@ def test_search_route_not_swallowed_by_type_route(client):
 
 
 def test_search_route_party_view(client, conn):
-    make(conn, "npc", "Lucenzo", known=True, notes="Bard. ||Owes the guild||")
+    make(conn, "npc", "Tamsin", known=True, notes="Bard. ||Owes the guild||")
     client.get("/view/party", follow_redirects=False)
-    assert "Lucenzo" in client.get("/search", params={"q": "bard"}).text
+    assert "Tamsin" in client.get("/search", params={"q": "bard"}).text
     page = client.get("/search", params={"q": "guild"}).text
-    assert "Lucenzo" not in page and "Owes" not in page
+    assert "Tamsin" not in page and "Owes" not in page
 
 
 def test_bad_filters_fall_back(client, conn):

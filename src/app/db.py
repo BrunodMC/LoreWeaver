@@ -341,3 +341,9 @@ def lineage_for_entity(conn: sqlite3.Connection, entity_id: int) -> int | None:
         "SELECT lineage_id FROM generations WHERE entity_id = ? ORDER BY id DESC LIMIT 1", (entity_id,)
     ).fetchone()
     return row[0] if row else None
+
+
+def delete_entity(conn: sqlite3.Connection, entity_id: int) -> None:
+    """Hard delete. Links cascade; generation history keeps its rows with entity_id set to NULL."""
+    with conn:
+        conn.execute("DELETE FROM entities WHERE id = ?", (entity_id,))

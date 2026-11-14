@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import db, knowledge, search as search_mod
+from .. import db, generation, knowledge, search as search_mod
 from ..entity_types import ENTITY_TYPES, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -106,9 +106,15 @@ def render_links(request: Request, conn: sqlite3.Connection, etype: EntityType,
     }, status_code)
 
 
+def under_review(conn: sqlite3.Connection, entity: dict) -> bool:
+    """An AI draft promotes through its review panel (which also creates the chosen links)."""
+    return entity["status"] == "draft" and db.lineage_for_entity(conn, entity["id"]) is not None
+
+
 def render_status(request: Request, conn: sqlite3.Connection, etype: EntityType, entity_id: int) -> HTMLResponse:
+    entity = db.get_entity(conn, entity_id)
     return render(request, "_status_actions.html", {
-        "etype": etype, "entity": db.get_entity(conn, entity_id), "statuses": STATUSES,
+        "etype": etype, "entity": entity, "statuses": STATUSES, "reviewing": under_review(conn, entity),
     })
 
 
@@ -201,9 +207,14 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
     party_view = is_party_view(request)
     if party_view and not db.visible_to_party(entity):
         return render(request, "unknown.html", {"etype": etype}, 404)
+    review = None
+    if not party_view and under_review(conn, entity):
+        review = generation.review_state(conn, entity)
     return render(request, "detail.html", {
         "etype": etype,
         "entity": entity,
+        "review": review,
+        "reviewing": review is not None,
         "extra_fields": extra_fields(etype, entity),
         "statuses": STATUSES,
         "links": db.links_for(conn, entity_id, party_view),

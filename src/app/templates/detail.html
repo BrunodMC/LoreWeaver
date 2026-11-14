@@ -17,6 +17,7 @@
 </div>
 
 {% if not party_view %}{% include "_status_actions.html" %}{% endif %}
+{% if review %}{% include "_review_panel.html" %}{% endif %}
 
 <dl class="fields">
   {% for f in etype.fields if not (party_view and f.dm_only) %}

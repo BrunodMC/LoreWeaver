@@ -5,7 +5,8 @@
 } %}
 <div id="status-actions" class="status-actions">
   <span class="badge badge-{{ entity.status }}">{{ entity.status }}</span>
-  {% for s in statuses if s != entity.status %}
+  {# An AI draft promotes from its review panel instead, which also creates the chosen links. #}
+  {% for s in statuses if s != entity.status and not (s == "canon" and reviewing is defined and reviewing) %}
   <button type="button"
           hx-post="/{{ etype.key }}/{{ entity.id }}/status"
           hx-vals='{"status": "{{ s }}"}'
