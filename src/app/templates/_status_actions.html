@@ -23,4 +23,17 @@
   <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "1"}'
           hx-target="#status-actions" hx-swap="outerHTML">Reveal to party</button>
   {% endif %}
+  {% if entity.status == "draft" %}
+  {# Canon always feeds AI generation; a draft (say, a list of open threads) only when opted in. #}
+  <span class="divider"></span>
+  {% if entity.ai_context %}
+  <span class="badge badge-ai">in AI context</span>
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/ai-context" hx-vals='{"included": "0"}'
+          hx-target="#status-actions" hx-swap="outerHTML">Leave out of AI context</button>
+  {% else %}
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/ai-context" hx-vals='{"included": "1"}'
+          hx-target="#status-actions" hx-swap="outerHTML"
+          title="Feed this draft to AI generation, marked as undecided">Include in AI context</button>
+  {% endif %}
+  {% endif %}
 </div>

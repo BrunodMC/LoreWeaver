@@ -102,6 +102,7 @@ button:hover, .button:hover { background: #eaeef2; }
 
 .badge-known { background: #e6effa; border-color: #9db8d9; }
 .badge-unknown { background: #f3e8f8; border-color: #c7a3d9; }
+.badge-ai { background: #fdf3dc; border-color: #d9bf7d; }
 .secret {
   background: #f3e8f8;
   border-bottom: 1px dashed #9b59b6;

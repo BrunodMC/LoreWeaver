@@ -277,3 +277,67 @@ def set_link_known(conn: sqlite3.Connection, link_id: int, known: bool) -> None:
 def remove_link(conn: sqlite3.Connection, link_id: int) -> None:
     with conn:
         conn.execute("DELETE FROM links WHERE id = ?", (link_id,))
+
+
+def set_ai_context(conn: sqlite3.Connection, entity_id: int, included: bool) -> None:
+    with conn:
+        conn.execute(
+            "UPDATE entities SET ai_context = ?, updated_at = datetime('now') WHERE id = ?",
+            (int(included), entity_id),
+        )
+
+
+# ── Generations (versions of AI drafts) ────────────────────────────────────
+
+GENERATION_KINDS = ("generated", "edit")
+
+
+def generation_from_row(row: sqlite3.Row) -> dict:
+    generation = dict(row)
+    for key in ("anchors", "output"):
+        generation[key] = json.loads(generation[key])
+    generation["usage"] = json.loads(generation["usage"]) if generation["usage"] else None
+    return generation
+
+
+def record_generation(conn: sqlite3.Connection, *, entity_type: str, kind: str, output: dict,
+                      entity_id: int | None = None, lineage_id: int | None = None,
+                      brief: str = "", notes: str = "", anchors: list[int] | tuple[int, ...] = (),
+                      model: str | None = None, usage: dict | None = None) -> int:
+    """Store one version. Without a lineage_id it starts a new lineage, keyed by its own id."""
+    if kind not in GENERATION_KINDS:
+        raise ValueError(f"Unknown generation kind: {kind}")
+    if entity_type not in ENTITY_TYPES:
+        raise ValueError(f"Unknown entity type: {entity_type}")
+    if lineage_id is not None and conn.execute(
+            "SELECT 1 FROM generations WHERE id = ? AND lineage_id = id", (lineage_id,)).fetchone() is None:
+        raise ValueError(f"Unknown generation lineage: {lineage_id}")
+    with conn:  # one transaction: a new lineage's row is never left without its lineage id
+        cur = conn.execute(
+            "INSERT INTO generations (lineage_id, entity_id, entity_type, kind, brief, notes, anchors, "
+            "output, model, usage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (lineage_id, entity_id, entity_type, kind, brief, notes, json.dumps(list(anchors)),
+             json.dumps(output), model, json.dumps(usage) if usage is not None else None),
+        )
+        if lineage_id is None:  # a new lineage is keyed by its first row's id
+            conn.execute("UPDATE generations SET lineage_id = id WHERE id = ?", (cur.lastrowid,))
+    return cur.lastrowid
+
+
+def get_generation(conn: sqlite3.Connection, generation_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM generations WHERE id = ?", (generation_id,)).fetchone()
+    return generation_from_row(row) if row else None
+
+
+def lineage_versions(conn: sqlite3.Connection, lineage_id: int) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM generations WHERE lineage_id = ? ORDER BY id", (lineage_id,)
+    ).fetchall()
+    return [generation_from_row(r) for r in rows]
+
+
+def lineage_for_entity(conn: sqlite3.Connection, entity_id: int) -> int | None:
+    row = conn.execute(
+        "SELECT lineage_id FROM generations WHERE entity_id = ? ORDER BY id DESC LIMIT 1", (entity_id,)
+    ).fetchone()
+    return row[0] if row else None

@@ -255,6 +255,14 @@ async def change_known(request: Request, type_key: str, entity_id: int, conn: Co
     return render_status(request, conn, etype, entity_id)
 
 
+@router.post("/{type_key}/{entity_id}/ai-context", response_class=HTMLResponse)
+async def change_ai_context(request: Request, type_key: str, entity_id: int, conn: Conn):
+    etype = entity_type_or_404(type_key)
+    entity_or_404(conn, type_key, entity_id)
+    db.set_ai_context(conn, entity_id, (await request.form()).get("included") == "1")
+    return render_status(request, conn, etype, entity_id)
+
+
 @router.post("/{type_key}/{entity_id}/links", response_class=HTMLResponse)
 async def create_link(request: Request, type_key: str, entity_id: int, conn: Conn):
     etype = entity_type_or_404(type_key)

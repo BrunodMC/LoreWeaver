@@ -8,7 +8,7 @@ from src.app import db
 
 def test_migrations_apply_once_and_foreign_keys_are_on(conn):
     db.init_db()  # second run must be a no-op
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
     assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
 
 
@@ -129,7 +129,7 @@ def test_migration_upgrades_a_version_1_database(temp_db):
         raw.execute("INSERT INTO entities (type, name) VALUES ('npc', 'Old Mara')")
     db.init_db()
     with sqlite3.connect(temp_db) as raw:
-        assert raw.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert raw.execute("PRAGMA user_version").fetchone()[0] == 3
         assert raw.execute("SELECT name, known_to_party FROM entities").fetchone() == ("Old Mara", 0)
 
 
