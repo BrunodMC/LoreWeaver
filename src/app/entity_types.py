@@ -41,8 +41,10 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("notes", "Notes"),
         ), default_known=True),
         EntityType("npc", "NPC", "NPCs", (
+            Field("ancestry_role", "Ancestry & role", "text"),  # "Galapa · Lord-Commander of the Army"
             Field("gender", "Gender", "text"),
             Field("appearance", "Appearance"),
+            Field("voice", "Voice & mannerisms", dm_only=True),  # performance cues for the GM
             Field("personality", "Personality"),
             Field("secret_or_want", "Secret or want"),
             Field("hook", "Hook"),
@@ -70,6 +72,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
         )),
         EntityType("adversary", "Adversary", "Adversaries", (
             Field("description", "Description"),
+            Field("voice", "Voice & mannerisms", dm_only=True),
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
             Field("role", "Role", "select", ADVERSARY_ROLES, dm_only=True),
             Field("motives_tactics", "Motives & tactics", "text", dm_only=True),

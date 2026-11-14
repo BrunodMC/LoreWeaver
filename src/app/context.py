@@ -43,7 +43,14 @@ Write every field as if it might one day be shown to the players, and wrap whate
 - Use the bible's names and spellings exactly."""
 
 # Per-field guidance, carried in the output schema's descriptions. Fields without a hint get none.
+VOICE_HINT = ("A few short cues for the GM to perform: how they sound, speak or carry themselves. Whatever "
+              "makes this character distinct; skip anything that doesn't. Cues, not prose.")
+
 FIELD_HINTS: dict[tuple[str, str], str] = {
+    ("npc", "ancestry_role"): "Ancestry and role or occupation, like 'Galapa · Lord-Commander of the Army'. "
+                              "A hidden role goes in ||bars||.",
+    ("npc", "voice"): VOICE_HINT,
+    ("adversary", "voice"): VOICE_HINT,
     ("npc", "secret_or_want"): "What they want, and what they hide. The hidden part usually belongs in ||bars||.",
     ("npc", "hook"): "How the party gets pulled in, or what this person can do for or against them.",
     ("location", "danger_or_mystery"): "What makes it worth visiting or dangerous. Secrets in ||bars||.",

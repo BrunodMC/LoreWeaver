@@ -48,7 +48,9 @@ def test_command_isolates_generation_from_the_dms_claude_setup():
     assert cmd[cmd.index("--tools") + 1] == ""
     assert cmd[cmd.index("--setting-sources") + 1] == ""
     assert cmd[cmd.index("--model") + 1] == llm.DEFAULT_MODEL
-    assert cmd[cmd.index("--effort") + 1] == "high"
+    assert cmd[cmd.index("--effort") + 1] == "medium"
+    deep = llm.ClaudeCLIBackend(executable="claude").command(Path("sys.md"), SCHEMA, deep=True)
+    assert deep[deep.index("--effort") + 1] == "high"
     assert json.loads(cmd[cmd.index("--json-schema") + 1]) == SCHEMA
     assert "sys.md" in joined
 

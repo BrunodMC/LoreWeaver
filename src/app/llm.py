@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Protocol
 
 DEFAULT_MODEL = "claude-opus-5-5"  # pinned, not the "opus" alias, so an upgrade is a decision, not a surprise
-DEFAULT_EFFORT = "high"            # Opus 5.5 defaults to medium; grounded creative work earns more thought
+DEFAULT_EFFORT = "medium"          # tested: half the time of high, no loss of grounding
+DEEP_EFFORT = "high"               # the "think harder" option: slower, bolder connections
 DEFAULT_TIMEOUT = 300              # seconds; prep time, but a hung subprocess shouldn't hang the app forever
 
 
@@ -31,7 +32,7 @@ class GenerationResult:
 
 
 class Backend(Protocol):
-    def generate(self, system: str, prompt: str, schema: dict) -> GenerationResult: ...
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult: ...
 
 
 # ── Claude Code CLI (subscription auth) ────────────────────────────────────
@@ -62,10 +63,11 @@ def find_claude_executable() -> str:
 class ClaudeCLIBackend:
     model: str = DEFAULT_MODEL
     effort: str = DEFAULT_EFFORT
+    deep_effort: str = DEEP_EFFORT
     timeout: float = DEFAULT_TIMEOUT
     executable: str | None = None
 
-    def command(self, system_prompt_file: Path, schema: dict) -> list[str]:
+    def command(self, system_prompt_file: Path, schema: dict, deep: bool = False) -> list[str]:
         return [
             self.executable or find_claude_executable(),
             "-p",
@@ -77,12 +79,12 @@ class ClaudeCLIBackend:
             "--strict-mcp-config",
             "--no-session-persistence",
             "--model", self.model,
-            "--effort", self.effort,
+            "--effort", self.deep_effort if deep else self.effort,
             "--output-format", "json",
             "--json-schema", json.dumps(schema),
         ]
 
-    def generate(self, system: str, prompt: str, schema: dict) -> GenerationResult:
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
         # The system prompt (rules + the whole bible) goes through a file and the brief through stdin:
         # Windows caps a command line at ~32k characters and the bible alone is bigger than that.
         # A scratch working directory keeps any project CLAUDE.md out of reach.
@@ -91,7 +93,7 @@ class ClaudeCLIBackend:
             system_file.write_text(system, encoding="utf-8")
             try:
                 completed = subprocess.run(
-                    self.command(system_file, schema), input=prompt, capture_output=True,
+                    self.command(system_file, schema, deep), input=prompt, capture_output=True,
                     text=True, encoding="utf-8", timeout=self.timeout, cwd=scratch,
                 )
             except subprocess.TimeoutExpired as exc:
@@ -126,8 +128,8 @@ class FakeBackend:
     calls: list[dict] = field(default_factory=list)
     model: str = "fake-model"
 
-    def generate(self, system: str, prompt: str, schema: dict) -> GenerationResult:
-        self.calls.append({"system": system, "prompt": prompt, "schema": schema})
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
+        self.calls.append({"system": system, "prompt": prompt, "schema": schema, "deep": deep})
         if not self.responses:
             raise LLMError("FakeBackend ran out of scripted responses.")
         response = self.responses.pop(0)
@@ -155,5 +157,6 @@ def set_backend(backend: Backend | None) -> None:
     _backend = backend
 
 
-def generate(system: str, prompt: str, schema: dict) -> GenerationResult:
-    return get_backend().generate(system, prompt, schema)
+def generate(system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
+    """deep=True asks the backend to think harder (slower, for briefs that want tangled connections)."""
+    return get_backend().generate(system, prompt, schema, deep)

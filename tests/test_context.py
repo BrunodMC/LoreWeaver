@@ -64,7 +64,9 @@ def test_output_schema_follows_the_entity_type():
     schema = context.output_schema("adversary")
     fields = schema["properties"]["fields"]
     assert "notes" not in fields["properties"]  # the model's DM notes fill Notes instead
-    assert fields["properties"]["role"]["enum"] == list(ENTITY_TYPES["adversary"].fields[2].options)
+    role = next(f for f in ENTITY_TYPES["adversary"].fields if f.key == "role")
+    assert fields["properties"]["role"]["enum"] == list(role.options)
+    assert "Cues, not prose" in fields["properties"]["voice"]["description"]
     assert set(fields["required"]) == set(fields["properties"])
     assert "name" in schema["required"]
     assert "Major/severe" in fields["properties"]["thresholds"]["description"]
