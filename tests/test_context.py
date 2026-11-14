@@ -63,7 +63,7 @@ def test_regeneration_prompt_carries_notes_and_current_draft():
 def test_output_schema_follows_the_entity_type():
     schema = context.output_schema("adversary")
     fields = schema["properties"]["fields"]
-    assert "notes" not in fields["properties"]  # the model's DM notes fill Notes instead
+    assert "notes" not in fields["properties"]  # Notes are the GM's; the model answers in dm_notes
     role = next(f for f in ENTITY_TYPES["adversary"].fields if f.key == "role")
     assert fields["properties"]["role"]["enum"] == list(role.options)
     assert "Cues, not prose" in fields["properties"]["voice"]["description"]
@@ -89,7 +89,7 @@ def answer(**overrides):
     return data
 
 
-def test_check_accepts_a_good_answer_and_bars_the_dm_notes(conn, bible):
+def test_check_accepts_a_good_answer_and_keeps_dm_notes_out_of_the_entry(conn, bible):
     entities = context.context_entities(conn)
     mara = db.get_entity(conn, bible["mara"])
     data = answer(
@@ -101,7 +101,8 @@ def test_check_accepts_a_good_answer_and_bars_the_dm_notes(conn, bible):
     )
     draft = context.check(data, "npc", entities, [mara])
     assert draft.problems == []
-    assert draft.fields["notes"] == "||Pairs well with the barge mystery.||"
+    assert "notes" not in draft.fields
+    assert draft.dm_notes == "Pairs well with the barge mystery."
     assert [l["label"] for l in draft.proposed_links] == ["owes money to"]  # normalised and deduped
     assert draft.proposed_links[0]["target"] == f"[npc #{bible['mara']}] Mara Vell"
     assert draft.open_threads[0]["proposal"] == "Ossa did."
@@ -140,14 +141,14 @@ def test_check_validates_adversary_menus_and_numbers(conn):
 
 def test_regeneration_keeps_unreturned_fields_verbatim(conn):
     current = {"name": "Ossa Grell", "fields": {
-        "personality": "Wry, hand-edited by the GM.", "hook": "Can smuggle anyone.", "notes": "||old notes||"}}
+        "personality": "Wry, hand-edited by the GM.", "hook": "Can smuggle anyone.", "notes": "My own notes."}}
     data = {"concept": "Darker take.", "fields": {"hook": "Owes the drowned a debt."},
             "proposed_links": [], "open_threads_touched": [], "dm_notes": "Darker."}
     draft = context.check(data, "npc", [], [], current=current)
     assert draft.problems == []
     assert draft.name == "Ossa Grell"
     assert draft.fields == {"personality": "Wry, hand-edited by the GM.", "hook": "Owes the drowned a debt.",
-                            "notes": "||Darker.||"}
+                            "notes": "My own notes."}  # the GM's Notes survive regeneration
 
 
 def test_check_undoes_stray_json_escaping(conn):

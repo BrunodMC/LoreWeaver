@@ -215,6 +215,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "entity": entity,
         "review": review,
         "reviewing": review is not None,
+        "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),
         "statuses": STATUSES,
         "links": db.links_for(conn, entity_id, party_view),

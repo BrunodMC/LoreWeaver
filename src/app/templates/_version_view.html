@@ -16,6 +16,7 @@
     <span class="badge {{ 'badge-ai' if version.kind == 'generated' else 'badge-edit' }}">{{ "AI attempt" if version.kind == "generated" else "your edit" }}</span>
     {% if version.is_current %}
     <span class="badge badge-current">in place now</span>
+    {% elif entity.status != "draft" %}{# history of a promoted entry: read-only #}
     {% else %}
     <form method="post" action="/{{ etype.key }}/{{ entity.id }}/versions/{{ version.id }}/restore" class="inline-form">
       <button type="submit">Use this version</button>
@@ -25,6 +26,12 @@
   </div>
 
   {% if version.notes %}<p><span class="muted">Notes for this attempt:</span> {{ version.notes }}</p>{% endif %}
+  {% if version.output.dm_notes %}
+  <details class="ai-notes">
+    <summary>Claude's notes for this version</summary>
+    <div class="field-value">{{ version.output.dm_notes }}</div>
+  </details>
+  {% endif %}
   {% if version.changed %}<p class="hint">Highlighted: what changed from version {{ version.number - 1 }}.</p>{% endif %}
 
   <dl class="fields version-fields">

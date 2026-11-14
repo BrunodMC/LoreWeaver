@@ -9,15 +9,18 @@ from .generate import dm_only
 router = APIRouter()
 
 
-def reviewable(request: Request, conn, type_key: str, entity_id: int) -> tuple[dict, dict]:
+def reviewable(request: Request, conn, type_key: str, entity_id: int,
+               drafts_only: bool = True) -> tuple[dict, dict]:
+    """The entry and its generation history. Changing it (promote, restore...) needs a draft;
+    reading the history works for any entry that came from the generator."""
     dm_only(request)
     entity_type_or_404(type_key)
     entity = entity_or_404(conn, type_key, entity_id)
-    if entity["status"] != "draft":
+    if drafts_only and entity["status"] != "draft":
         raise HTTPException(409, "Only drafts are under review")
     review = generation.review_state(conn, entity)
     if review is None:
-        raise HTTPException(404, "This draft has no generation history")
+        raise HTTPException(404, "This entry has no generation history")
     return entity, review
 
 
@@ -39,10 +42,20 @@ async def inbox(request: Request, conn: Conn):
 
 @router.get("/{type_key}/{entity_id}/versions/{version_id}", response_class=HTMLResponse)
 async def version_view(request: Request, type_key: str, entity_id: int, version_id: int, conn: Conn):
-    entity, review = reviewable(request, conn, type_key, entity_id)
+    entity, review = reviewable(request, conn, type_key, entity_id, drafts_only=False)
     return render(request, "_version_view.html", {
         "etype": entity_type_or_404(type_key), "entity": entity, "review": review,
         "version": version_or_404(review, version_id),
+    })
+
+
+@router.get("/{type_key}/{entity_id}/history", response_class=HTMLResponse)
+async def history(request: Request, type_key: str, entity_id: int, conn: Conn):
+    """How an entry was drafted: every attempt, edit and Claude's notes, after the review is over."""
+    entity, review = reviewable(request, conn, type_key, entity_id, drafts_only=False)
+    return render(request, "history.html", {
+        "etype": entity_type_or_404(type_key), "entity": entity, "review": review,
+        "version": review["current"] or review["versions"][-1],
     })
 
 
@@ -64,7 +77,9 @@ async def promote(request: Request, type_key: str, entity_id: int, conn: Conn):
             chosen.add(int(value))
         except ValueError:
             continue
-    generation.promote(conn, entity, [link for i, link in enumerate(proposals) if i in chosen])
+    ai_notes = review["source"]["output"].get("dm_notes", "") if review["source"] else ""
+    keep = ai_notes if form.get("keep_notes") == "1" else ""
+    generation.promote(conn, entity, [link for i, link in enumerate(proposals) if i in chosen], keep)
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 

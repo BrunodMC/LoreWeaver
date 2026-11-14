@@ -63,7 +63,7 @@ FIELD_HINTS: dict[tuple[str, str], str] = {
     ("adversary", "features"): "One feature per line: Name - Action/Reaction/Passive: effect.",
 }
 
-# Fields the model doesn't write directly: the entry's Notes hold the model's DM notes, fully barred.
+# Fields the model never writes: Notes are the GM's own. The model's notes go in its dm_notes answer.
 MODEL_SKIPS = {"notes"}
 
 ADVERSARY_INSTRUCTION = ("Build the full stat block per the adversary module. If the brief doesn't set a tier, "
@@ -317,14 +317,11 @@ def check(data: dict, entity_type: str, entities: list[dict], anchors: list[dict
                         "thread": str(thread.get("thread", "")).strip(),
                         "proposal": str(thread.get("proposal", "")).strip()})
 
-    dm_notes = str(data.get("dm_notes", "")).strip()
-    if "notes" in {f.key for f in etype.fields}:
-        fields["notes"] = barred(dm_notes)  # fully barred: revealing the entry must never reveal these
-        if not fields["notes"]:
-            del fields["notes"]
-
+    # The model's notes stay out of the entry: they're review material, kept in the generation history
+    # and shown in the review panel. Notes (carried over from `current` on regeneration) are the GM's.
     return Draft(concept=str(data.get("concept", "")).strip(), name=name, fields=fields,
-                 proposed_links=links, open_threads=threads, dm_notes=dm_notes, problems=problems)
+                 proposed_links=links, open_threads=threads,
+                 dm_notes=str(data.get("dm_notes", "")).strip(), problems=problems)
 
 
 def retry_prompt(prompt: str, problems: list[str]) -> str:

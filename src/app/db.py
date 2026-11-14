@@ -329,6 +329,12 @@ def get_generation(conn: sqlite3.Connection, generation_id: int) -> dict | None:
     return generation_from_row(row) if row else None
 
 
+def update_generation_output(conn: sqlite3.Connection, generation_id: int, output: dict) -> None:
+    """For data fixes only: versions are otherwise write-once."""
+    with conn:
+        conn.execute("UPDATE generations SET output = ? WHERE id = ?", (json.dumps(output), generation_id))
+
+
 def lineage_versions(conn: sqlite3.Connection, lineage_id: int) -> list[dict]:
     rows = conn.execute(
         "SELECT * FROM generations WHERE lineage_id = ? ORDER BY id", (lineage_id,)

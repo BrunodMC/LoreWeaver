@@ -216,14 +216,20 @@ def running_jobs() -> list[Job]:
 
 
 def restore(conn, entity: dict, version: dict) -> None:
-    """Put an earlier version back in place, keeping the current state in the history first."""
+    """Put an earlier version back in place, keeping the current state in the history first.
+    The GM's own Notes stay as they are now: they aren't part of the AI's versions."""
     snapshot_if_edited(conn, entity)
     out = version["output"]
-    db.update_entity(conn, entity["id"], out["name"], out["fields"])
+    fields = {k: v for k, v in out["fields"].items() if k != "notes"}
+    if entity["fields"].get("notes"):
+        fields["notes"] = entity["fields"]["notes"]
+    db.update_entity(conn, entity["id"], out["name"], fields)
 
 
-def promote(conn, entity: dict, links: list[dict]) -> int:
-    """Make the draft canon and create the chosen proposed links. Returns how many links were made."""
+def promote(conn, entity: dict, links: list[dict], keep_notes: str = "") -> int:
+    """Make the draft canon and create the chosen proposed links. Returns how many links were made.
+    keep_notes, if given, is appended to the entry's Notes, fully barred; otherwise the AI's notes
+    stay behind in the generation history."""
     made = 0
     for link in links:
         target = db.get_entity(conn, link["target_id"])
@@ -231,5 +237,36 @@ def promote(conn, entity: dict, links: list[dict]) -> int:
             continue  # the target was deleted after the draft was generated
         ends = (entity["id"], target["id"]) if link["direction"] == "from_new" else (target["id"], entity["id"])
         made += db.add_link(conn, *ends, link["label"], known=link["party_knows"])
+    kept = context.barred(keep_notes)
+    if kept:
+        fields = dict(entity["fields"])
+        fields["notes"] = "\n\n".join(part for part in (fields.get("notes", "").strip(), kept) if part)
+        db.update_entity(conn, entity["id"], entity["name"], fields)
     db.set_status(conn, entity["id"], "canon")
     return made
+
+
+def move_legacy_notes(conn) -> int:
+    """Drafts generated before 2026-11-14 had the AI's notes written into their Notes field (barred).
+    Take them back out, from the entry and from its stored versions, wherever Notes holds exactly
+    those notes: anything the GM wrote there is left alone. Idempotent; returns entries changed."""
+    changed = 0
+    for (lineage,) in conn.execute("SELECT DISTINCT lineage_id FROM generations").fetchall():
+        versions = db.lineage_versions(conn, lineage)
+        ai_notes = {context.barred(v["output"].get("dm_notes", "")) for v in versions if v["kind"] == "generated"}
+        ai_notes.discard("")
+        if not ai_notes:
+            continue
+        for v in versions:
+            fields = v["output"].get("fields", {})
+            if fields.get("notes") in ai_notes:
+                del fields["notes"]
+                db.update_generation_output(conn, v["id"], v["output"])
+        entity_ids = {v["entity_id"] for v in versions if v["entity_id"] is not None}
+        for entity_id in entity_ids:
+            entity = db.get_entity(conn, entity_id)
+            if entity and entity["fields"].get("notes") in ai_notes:
+                fields = {k: v for k, v in entity["fields"].items() if k != "notes"}
+                db.update_entity(conn, entity_id, entity["name"], fields)
+                changed += 1
+    return changed

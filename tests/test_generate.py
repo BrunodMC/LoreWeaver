@@ -112,7 +112,7 @@ def test_happy_path_lands_an_unknown_draft_with_its_history(client, world):
     draft = entity(draft_id)
     assert draft["status"] == "draft" and draft["known_to_party"] == 0
     assert draft["fields"]["voice"].startswith("Short sentences")
-    assert draft["fields"]["notes"] == "||Use her at the docks.||"
+    assert "notes" not in draft["fields"]  # Claude's notes live in the history, not the entry
     assert fake.calls[0]["deep"] is True
     assert "Ferrymen's Guild" in fake.calls[0]["system"] and "Unflagged draft" not in fake.calls[0]["system"]
 
@@ -177,7 +177,7 @@ def test_regeneration_keeps_hand_edits_in_history_and_untouched_fields(client, w
 
     fields = entity(draft_id)["fields"]
     assert fields["personality"] == "Hand-edited by the GM."  # not returned, kept verbatim
-    assert fields["voice"] == "Whispers." and fields["notes"] == "||Darker take.||"
+    assert fields["voice"] == "Whispers." and "notes" not in fields
     with closing(db.get_connection()) as conn:
         kinds = [v["kind"] for v in db.lineage_versions(conn, db.lineage_for_entity(conn, draft_id))]
     assert kinds == ["generated", "edit", "generated"]

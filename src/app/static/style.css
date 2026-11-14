@@ -194,3 +194,6 @@ button.danger:hover { background: #fdf0ef; }
 .inbox-item p { margin: 4px 0 0; }
 .inbox-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inbox-title a { font-weight: 600; }
+
+.ai-notes summary { cursor: pointer; font-weight: 600; }
+.ai-notes .field-value { margin-top: 6px; padding: 8px 10px; background: #fff; border: 1px solid #ead9a8; border-radius: 6px; }

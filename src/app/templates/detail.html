@@ -11,6 +11,9 @@
     {% if entity.status == "canon" or (entity.status == "draft" and entity.ai_context) %}
     <a class="button" href="/generate?anchor={{ entity.id }}" title="Generate a new entry tied to this one">✦ Spin off</a>
     {% endif %}
+    {% if has_history and not review %}
+    <a class="button" href="/{{ etype.key }}/{{ entity.id }}/history" title="Every AI attempt, your edits, and Claude's notes">Drafting history</a>
+    {% endif %}
     <a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>
   </div>
   {% endif %}

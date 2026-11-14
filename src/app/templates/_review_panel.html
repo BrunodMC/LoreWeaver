@@ -5,6 +5,12 @@
   <h2>✦ AI draft under review</h2>
   {% if review.brief %}<p><span class="muted">Brief:</span> {{ review.brief }}</p>{% endif %}
   {% if source and source.output.concept %}<p><span class="muted">Pitch:</span> {{ source.output.concept }}</p>{% endif %}
+  {% if source and source.output.dm_notes %}
+  <details class="ai-notes">
+    <summary>Claude's notes <span class="hint">reasoning, implications for canon, how to run it</span></summary>
+    <div class="field-value">{{ source.output.dm_notes }}</div>
+  </details>
+  {% endif %}
 
   {% if threads %}
   <div class="callout">
@@ -37,6 +43,9 @@
     </ul>
     {% else %}
     <p class="hint">No links proposed.</p>
+    {% endif %}
+    {% if source and source.output.dm_notes %}
+    <label class="checkbox"><input type="checkbox" name="keep_notes" value="1"> Also keep Claude's notes in the entry's Notes (barred, DM only). Otherwise they stay in the drafting history.</label>
     {% endif %}
     <div class="form-actions">
       <button type="submit" class="primary">Promote to canon</button>

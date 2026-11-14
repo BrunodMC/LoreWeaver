@@ -174,3 +174,65 @@ def test_inbox_shows_running_generations(client, world, monkeypatch):
 def test_inbox_is_dm_only(client):
     client.get("/view/party")
     assert client.get("/drafts").status_code == 404
+
+
+def test_panel_shows_claudes_notes_and_promote_leaves_them_behind(client, world, draft_id):
+    page = client.get(f"/npc/{draft_id}").text
+    assert "Claude&#39;s notes" in page or "Claude's notes" in page
+    assert "Use her at the docks." in page and 'name="keep_notes"' in page
+    assert "notes" not in entity(draft_id)["fields"]
+
+    client.post(f"/npc/{draft_id}/promote")
+    assert "notes" not in entity(draft_id)["fields"]
+    page = client.get(f"/npc/{draft_id}").text
+    assert f'href="/npc/{draft_id}/history"' in page and "Use her at the docks." not in page
+
+
+def test_promote_can_keep_claudes_notes_after_the_gms_own(client, world, draft_id):
+    with closing(db.get_connection()) as conn:
+        db.update_entity(conn, draft_id, "Ossa Grell", {**entity(draft_id)["fields"], "notes": "Mine first."})
+    client.post(f"/npc/{draft_id}/promote", data={"keep_notes": "1"})
+    assert entity(draft_id)["fields"]["notes"] == "Mine first.\n\n||Use her at the docks.||"
+
+
+def test_drafting_history_stays_readable_after_promotion(client, world, draft_id):
+    client.post(f"/npc/{draft_id}/promote")
+    history = client.get(f"/npc/{draft_id}/history").text
+    assert "Drafting history" in history and "Brief:</span> a ferry pilot" in history
+    assert "Use her at the docks." in history and "Use this version" not in history
+    first = versions(draft_id)[0]["id"]
+    assert client.get(f"/npc/{draft_id}/versions/{first}").status_code == 200
+    assert client.post(f"/npc/{draft_id}/versions/{first}/restore").status_code == 409
+    assert client.get(f"/npc/{world['mara']}/history").status_code == 404  # never generated
+    client.get("/view/party")
+    assert client.get(f"/npc/{draft_id}/history").status_code == 404
+
+
+def test_restore_keeps_the_gms_current_notes(client, world, draft_id):
+    script({"concept": "c", "fields": {"hook": "New hook."}, "proposed_links": [],
+            "open_threads_touched": [], "dm_notes": "n"})
+    client.post(f"/npc/{draft_id}/regenerate", data={"notes": "new hook"})
+    with closing(db.get_connection()) as conn:
+        db.update_entity(conn, draft_id, "Ossa Grell", {**entity(draft_id)["fields"], "notes": "Written later."})
+    client.post(f"/npc/{draft_id}/versions/{versions(draft_id)[0]['id']}/restore")
+    fields = entity(draft_id)["fields"]
+    assert fields["hook"] == "Can smuggle anyone." and fields["notes"] == "Written later."
+
+
+def test_legacy_notes_move_out_of_entries_but_gm_writing_stays(client, world):
+    legacy = {"personality": "Wry.", "notes": "||Old AI notes.||"}
+    with closing(db.get_connection()) as conn:
+        old = db.create_entity(conn, "npc", "Old Draft", legacy, status="draft")
+        lineage = db.record_generation(conn, entity_type="npc", kind="generated", entity_id=old,
+                                       output={"name": "Old Draft", "fields": dict(legacy), "dm_notes": "Old AI notes."})
+        kept = db.create_entity(conn, "npc", "Edited Draft", {"notes": "||Old AI notes.|| Plus mine."}, status="draft")
+        db.record_generation(conn, entity_type="npc", kind="generated", entity_id=kept,
+                             output={"name": "Edited Draft", "fields": {}, "dm_notes": "Old AI notes."})
+
+        assert generation.move_legacy_notes(conn) == 1
+        assert generation.move_legacy_notes(conn) == 0  # idempotent
+        assert db.get_entity(conn, old)["fields"] == {"personality": "Wry."}
+        assert db.get_generation(conn, lineage)["output"]["fields"] == {"personality": "Wry."}
+        assert db.get_entity(conn, kept)["fields"]["notes"] == "||Old AI notes.|| Plus mine."
+        # the version in place still matches the entry, so the panel doesn't see a phantom edit
+        assert generation.review_state(conn, db.get_entity(conn, old))["current"]["id"] == lineage
