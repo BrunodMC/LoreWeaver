@@ -9,3 +9,5 @@ data/
 reference/handbook/
 # ChatGPT exports and other private lore sources
 reference/imports/
+# Claude Code local state (worktrees, settings)
+.claude/
