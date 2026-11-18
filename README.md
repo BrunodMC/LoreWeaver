@@ -79,6 +79,17 @@ $env:LOREWEAVER_DB = "C:\path\to\LoreWeaver\data\loreweaver.db"
 python -m uvicorn src.app.main:app --reload
 ```
 
+## Publishing the players' field-book
+
+```powershell
+python -m src.app.export            # writes the party view to data/export as plain files
+```
+
+The export walks the app's own party view, so it holds only what the players may see (it refuses to
+write a page carrying any DM-only markup), plus the portraits of entries they know. Upload the folder
+to any free static host: on Cloudflare Pages, *Workers & Pages → Create → Pages → Upload assets*,
+then drop `data/export` in. Re-run and re-upload after each session.
+
 ## Tests
 
 ```powershell
