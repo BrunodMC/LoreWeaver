@@ -83,7 +83,7 @@ def workspace_context(conn, comp: dict) -> dict:
             groups.append((kind, members))
     return {
         "comp": comp, "task": composite.TASKS.get(comp["id"]), "meter": meter, "groups": groups,
-        "toggles": battle.TOGGLES, "roles": context.ADVERSARY_ROLES,
+        "toggles": battle.TOGGLES, "roles": context.ADVERSARY_ROLES, "bp_costs": battle.COSTS,
         "anchors": [e for e in (db.get_entity(conn, a) for a in comp["anchors"]) if e],
         "progress": composite.progress(conn, comp) if comp["stage"] in ("drafting", "done") else None,
         "ticked": len(generation.ticked_cast(comp)),

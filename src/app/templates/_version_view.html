@@ -25,6 +25,9 @@
     <span class="hint">{{ version.created_at|local_time }}</span>
   </div>
 
+  {# The version in place duplicates the entry right below, so it folds away; an older one opens to compare. #}
+  <details class="version-body"{% if not version.is_current %} open{% endif %}>
+  <summary>{{ "Show this version" if version.is_current else "This version" }}{% if version.changed %} <span class="hint">{{ version.changed|length }} field{{ "s" if version.changed|length != 1 }} changed</span>{% endif %}</summary>
   {% if version.notes %}<p><span class="muted">Notes for this attempt:</span> {{ version.notes }}</p>{% endif %}
   {% if version.output.dm_notes %}
   <details class="ai-notes">
@@ -45,4 +48,5 @@
     {% endif %}
     {% endfor %}
   </dl>
+  </details>
 </div>

@@ -78,6 +78,9 @@
     </div>
   </div>
 
+  {% if back_to_cast %}
+  <p class="back-to-cast"><a href="/encounter/{{ back_to_cast.id }}">◂ Back to the cast of {{ back_to_cast.name }}</a></p>
+  {% endif %}
   {% include "_status_actions.html" %}
   {% if review %}{% include "_review_panel.html" %}{% endif %}
   {% if cast %}{% include "_cast_panel.html" %}{% endif %}
@@ -88,7 +91,11 @@
     {% set reveal_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/" ~ f.key if can_reveal and not f.dm_only else "" %}
     {% set shown = entity.fields.get(f.key, "")|lore(false, reveal_url) %}
     <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
+    {% if f.key == "features" and shown %}
+    <dd class="statblock">{{ entity.fields.features|statblock }}</dd>
+    {% else %}
     <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
+    {% endif %}
     {% endfor %}
   </dl>
 

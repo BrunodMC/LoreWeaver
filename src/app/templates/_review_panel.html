@@ -2,8 +2,8 @@
 {% set proposals = source.output.proposed_links if source else [] %}
 <section class="review-panel">
   <h2>✦ AI draft under review</h2>
-  {% if review.brief %}<p><span class="muted">Brief:</span> {{ review.brief }}</p>{% endif %}
-  {% if source and source.output.concept %}<p><span class="muted">Pitch:</span> {{ source.output.concept }}</p>{% endif %}
+  {% if review.brief %}<p><span class="muted">Brief:</span> {{ review.brief|lore }}</p>{% endif %}
+  {% if source and source.output.concept %}<p><span class="muted">Pitch:</span> {{ source.output.concept|lore }}</p>{% endif %}
   {% if source and source.output.dm_notes %}
   <details class="ai-notes">
     <summary>Claude's notes <span class="hint">reasoning, frame material, how to run it</span></summary>

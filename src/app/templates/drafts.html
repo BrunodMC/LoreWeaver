@@ -22,6 +22,7 @@
       <label class="checkbox"><input type="checkbox" name="reveal" value="{{ r.id }}" checked>
         {% if r.entity_type %}<a href="/{{ r.entity_type }}/{{ r.entity_id }}">{{ r.entity_name }}</a>{% else %}{{ r.entity_name }}{% endif %}{% if r.field %} · {{ r.field }}{% endif %}</label>
       <span class="hint">{{ r.created_at|local_time }}</span>
+      <button type="submit" formaction="/reveals/{{ r.id }}/dismiss" class="link-action" title="Forget this reveal (say, you undid it by hand)">Dismiss</button>
       {% if r.text %}<p class="field-value">{{ r.text }}</p>{% else %}<p class="hint">The entry itself was revealed.</p>{% endif %}
     </li>
     {% endfor %}

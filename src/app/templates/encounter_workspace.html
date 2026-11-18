@@ -31,7 +31,7 @@
 <div class="spine-cards">
   {% for s in comp.spines %}
   <form method="post" action="/encounters/{{ comp.id }}/choose" class="spine-card">
-    <textarea name="spine" rows="6">{{ s.title }}
+    <textarea name="spine" rows="{{ [6, ((s.title ~ s.premise)|length // 34) + 2]|max }}">{{ s.title }}
 {{ s.premise }}</textarea>
     <p class="hint">{{ s.why }}</p>
     <button type="submit" class="primary">Use this premise</button>
@@ -64,7 +64,7 @@
     <fieldset class="pool-group">
       <legend>{{ entity_types[kind].plural }}</legend>
       {% for m in members %}
-      <div class="pool-member{% if m.ticked %} ticked{% endif %}">
+      <div class="pool-member{% if m.ticked %} ticked{% endif %}"{% if m.type == "adversary" %} data-adversary{% endif %}>
         <label class="checkbox"><input type="checkbox" name="tick_{{ m.key }}" value="1"{% if m.ticked %} checked{% endif %}></label>
         <div class="pool-fields">
           {% if m.existing_id %}
@@ -82,9 +82,10 @@
             {% endif %}
             <label class="hint">× <input type="number" name="count_{{ m.key }}" value="{{ m.count }}" min="1" max="20" class="narrow"
               title="{{ 'Groups the size of the party' if m.role == 'Minion' else 'How many' }}"></label>
+            <span class="bp-cost" data-role="{{ m.role }}" aria-live="polite"></span>
           </div>
           {% endif %}
-          <textarea name="pitch_{{ m.key }}" rows="2" aria-label="Pitch" placeholder="Its part in the scene">{{ m.pitch }}</textarea>
+          <textarea name="pitch_{{ m.key }}" rows="{{ [2, (m.pitch|length // 52) + 1]|max }}" aria-label="Pitch" placeholder="Its part in the scene">{{ m.pitch }}</textarea>
         </div>
         <button type="submit" name="drop_{{ m.key }}" value="1" formaction="/encounters/{{ comp.id }}/pool"
                 class="link-action" title="Remove from the pool">✕</button>
@@ -127,4 +128,24 @@
 
 {# ── Step 4: drafting ── #}
 {% if progress %}{% include "_composite_progress.html" %}{% endif %}
+
+{% if comp.stage == "pool" %}
+<script>
+/* Each adversary row shows what it costs (role × count), live; the meter keeps the running total. */
+(function () {
+  var COSTS = {{ bp_costs|tojson }};
+  function update() {
+    document.querySelectorAll(".pool-member[data-adversary]").forEach(function (row) {
+      var out = row.querySelector(".bp-cost"), select = row.querySelector("select");
+      var role = select ? select.value : out.getAttribute("data-role");
+      var count = parseInt((row.querySelector('input[type="number"]') || {}).value, 10) || 1;
+      out.textContent = role in COSTS ? "= " + COSTS[role] * count + " BP" : "";
+    });
+  }
+  document.addEventListener("input", update);
+  document.addEventListener("change", update);
+  update();
+})();
+</script>
+{% endif %}
 {% endblock %}

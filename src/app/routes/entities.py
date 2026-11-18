@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import audit, composite, db, generation, knowledge, ornament, search as search_mod
+from .. import audit, composite, db, generation, knowledge, ornament, search as search_mod, statblock
 from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -34,6 +34,7 @@ def roman(number: int) -> str:
 
 
 templates.env.filters["roman"] = roman
+templates.env.filters["statblock"] = statblock.render
 templates.env.filters["lore"] = knowledge.render
 templates.env.filters["local_time"] = local_time
 
@@ -215,6 +216,15 @@ async def create(request: Request, type_key: str, conn: Conn):
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
+def encounter_of(conn: sqlite3.Connection, entity: dict) -> dict | None:
+    """For a member drafted for a composed encounter: that encounter, to get back to its cast."""
+    composite_id = db.composite_for_entity(conn, entity["id"])
+    comp = db.get_composite(conn, composite_id) if composite_id else None
+    if comp is None or not comp["encounter_id"] or comp["encounter_id"] == entity["id"]:
+        return None
+    return db.get_entity(conn, comp["encounter_id"])
+
+
 def secrecy_state(conn: sqlite3.Connection, entity_id: int, just_applied: str | None) -> dict:
     """The secrecy check's panel: a check running, an open one to rule on, or what couldn't be hidden."""
     failed = []
@@ -242,6 +252,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "review": review,
         "reviewing": review is not None,
         "cast": composite.cast_review(conn, entity) if not party_view and entity["type"] == "encounter" else None,
+        "back_to_cast": None if party_view else encounter_of(conn, entity),
         "can_reveal": not party_view and db.visible_to_party(entity),
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,

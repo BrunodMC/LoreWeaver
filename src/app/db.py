@@ -450,6 +450,11 @@ def file_reveals(conn: sqlite3.Connection, reveal_ids: list[int], session_id: in
         conn.executemany("UPDATE reveals SET session_id = ? WHERE id = ?", [(session_id, r) for r in reveal_ids])
 
 
+def dismiss_reveal(conn: sqlite3.Connection, reveal_id: int) -> None:
+    with conn:
+        conn.execute("DELETE FROM reveals WHERE id = ? AND session_id IS NULL", (reveal_id,))
+
+
 def sessions_newest_first(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute("SELECT * FROM entities WHERE type = 'session' AND status != 'archived'").fetchall()
     sessions = [entity_from_row(r) for r in rows]

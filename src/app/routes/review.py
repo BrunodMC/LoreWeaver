@@ -42,6 +42,14 @@ async def inbox(request: Request, conn: Conn):
     })
 
 
+@router.post("/reveals/{reveal_id}/dismiss")
+async def dismiss_reveal(request: Request, reveal_id: int, conn: Conn):
+    """Forget an unfiled reveal (for one undone by hand). Filed reveals belong to their session."""
+    dm_only(request)
+    db.dismiss_reveal(conn, reveal_id)
+    return RedirectResponse("/drafts", status_code=303)
+
+
 @router.post("/reveals/file")
 async def file_reveals(request: Request, conn: Conn):
     """File ticked reveals to a session entry (often one written after the game)."""
