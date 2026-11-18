@@ -58,6 +58,14 @@ def test_revealing_a_passage_unbars_it_and_logs_it_unfiled(client, mara):
     assert "Unfiled reveals" in inbox and "She burned it." in inbox
 
 
+def test_reveal_logs_never_feed_the_model(conn):
+    """The bible the model reads is entries only: reveal logs (like audits and workspaces) stay out."""
+    from src.app import context
+    entry = db.create_entity(conn, "npc", "Mara", {"hook": "A ledger."}, known=True)
+    db.record_reveal(conn, db.get_entity(conn, entry), "Hook", "UNIQUE-LOG-TEXT-7731")
+    assert "UNIQUE-LOG-TEXT-7731" not in context.system_prompt(conn)
+
+
 def test_reveal_guards(client, mara):
     assert reveal(client, mara, field="voice", passage="Whispers.").status_code == 404  # DM-only field
     with closing(db.get_connection()) as conn:
