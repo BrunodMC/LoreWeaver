@@ -36,7 +36,7 @@
     <details class="nav-group">
       <summary>{{ party_label if party_view else dm_label }}</summary>
       <div class="nav-menu">
-        {% for t in types if t in entity_types and not (party_view and entity_types[t].party_hidden) %}<a href="/{{ t }}">{{ entity_types[t]|plural(party_view) }}</a>{% endfor %}
+        {% for t in types if t in entity_types and not (party_view and entity_types[t].party_hidden) %}<a href="/{{ t }}">{{ entity_types[t]|plural(party_view) }}{% if not party_view and entity_types[t].party_plural %} <span class="party-label">({{ entity_types[t].party_plural }})</span>{% endif %}</a>{% endfor %}
       </div>
     </details>
     {% endfor %}
@@ -62,9 +62,6 @@
     </button>
   </div>
 </header>
-{% if party_view %}
-<p class="party-banner">Party view: only what the party knows, with secrets removed.</p>
-{% endif %}
 <main>
 {% block content %}{% endblock %}
 </main>

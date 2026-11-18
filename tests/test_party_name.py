@@ -38,6 +38,19 @@ def test_the_dm_sees_both_and_can_reveal_the_true_name(client):
     assert "Oove" in client.get(f"/npc/{god}").text
 
 
+def test_sessions_read_as_chapters_to_the_party(client):
+    with closing(db.get_connection()) as conn:
+        session = db.create_entity(conn, "session", "Session 3: The Ambush", {}, known=True)
+        place = db.create_entity(conn, "location", "Low road", {}, known=True)
+        db.add_link(conn, place, session, "scene of", known=True)
+    dm = client.get("/session").text
+    assert "Session 3: The Ambush" in dm and '<span class="party-label">(Chapters)</span>' in dm
+    client.get("/view/party")
+    for url in ("/session", f"/session/{session}", f"/location/{place}"):
+        page = client.get(url).text
+        assert "Chapter 3: The Ambush" in page and "Session 3" not in page, url
+
+
 def test_the_form_sets_and_clears_the_alias(client):
     response = client.post("/npc", data={"name": "Soren Maelir", "party_name": "the hooded ambusher", "status": "canon"},
                            follow_redirects=False)

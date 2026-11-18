@@ -95,8 +95,14 @@ def get_entity(conn: sqlite3.Connection, entity_id: int) -> dict | None:
 
 
 def party_name(entity: dict) -> str:
-    """What the party calls this entry: its alias if the real name is still a secret."""
-    return (entity.get("party_name") or "").strip() or entity["name"]
+    """What the party calls this entry: its alias if the real name is still a secret. Their book counts
+    chapters, not sessions: "Session 3: The Ambush" reads "Chapter 3: The Ambush"."""
+    alias = (entity.get("party_name") or "").strip()
+    if alias:
+        return alias
+    if entity.get("type") == "session":
+        return re.sub(r"^\s*Session\b", "Chapter", entity["name"])
+    return entity["name"]
 
 
 def as_party_sees(entity: dict) -> dict:
@@ -165,10 +171,9 @@ def links_for(conn: sqlite3.Connection, entity_id: int, party_view: bool = False
         " AND l.known_to_party = 1 AND e.known_to_party = 1 AND e.status = 'canon' AND e." + PARTY_TYPES_SQL
         if party_view else ""
     )
-    other_name = "CASE WHEN e.party_name != '' THEN e.party_name ELSE e.name END" if party_view else "e.name"
     columns = (
         "SELECT l.id, l.relation_label, l.known_to_party, e.id AS other_id, e.type AS other_type, "
-        f"{other_name} AS other_name, e.party_name AS other_party_name, e.status AS other_status, "
+        "e.name AS other_name, e.party_name AS other_party_name, e.status AS other_status, "
         "e.known_to_party AS other_known "
     )
     outgoing = conn.execute(
@@ -181,7 +186,14 @@ def links_for(conn: sqlite3.Connection, entity_id: int, party_view: bool = False
         f"WHERE l.to_entity_id = ?{party_filter} ORDER BY l.relation_label, e.name",
         (entity_id,),
     ).fetchall()
-    return {"outgoing": [dict(r) for r in outgoing], "incoming": [dict(r) for r in incoming]}
+    def row(r):
+        link = dict(r)
+        if party_view:  # the other end wears the name the party knows
+            link["other_name"] = party_name({"name": link["other_name"], "party_name": link["other_party_name"],
+                                             "type": link["other_type"]})
+        return link
+
+    return {"outgoing": [row(r) for r in outgoing], "incoming": [row(r) for r in incoming]}
 
 
 def get_link(conn: sqlite3.Connection, link_id: int) -> dict | None:

@@ -30,7 +30,7 @@ ADVERSARY_ROLES = ("Bruiser", "Horde", "Leader", "Minion", "Ranged", "Skulk",
 ENTITY_TYPES: dict[str, EntityType] = {
     t.key: t
     for t in (
-        EntityType("pc", "PC", "PCs", (
+        EntityType("pc", "PC", "PCs", party_plural="The Company", fields=(
             Field("player", "Player", "text"),
             Field("gender", "Gender", "text"),  # free text on purpose: "n/a", "neutral", "a choir of moths"…
             Field("class", "Class", "text"),
@@ -44,7 +44,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("connections", "Connections"),
             Field("notes", "Notes"),
         ), default_known=True),
-        EntityType("npc", "NPC", "NPCs", (
+        EntityType("npc", "NPC", "NPCs", party_plural="Folk", fields=(
             Field("ancestry_role", "Ancestry & role", "text"),  # "Galapa · Lord-Commander of the Army"
             Field("gender", "Gender", "text"),
             Field("appearance", "Appearance"),
@@ -54,27 +54,27 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("hook", "Hook"),
             Field("notes", "Notes"),
         )),
-        EntityType("location", "Location", "Locations", (
+        EntityType("location", "Location", "Locations", party_plural="Landmarks", fields=(
             Field("atmosphere", "Atmosphere"),
             Field("notable_detail", "Notable detail"),
             Field("danger_or_mystery", "Danger or mystery"),
             Field("notes", "Notes"),
         )),
-        EntityType("faction", "Faction", "Factions", (
+        EntityType("faction", "Faction", "Factions", party_plural="Powers", fields=(
             Field("goals", "Goals"),
             Field("notes", "Notes"),
         )),
-        EntityType("arc", "Arc", "Arcs", (
+        EntityType("arc", "Arc", "Arcs", party_plural="Threads", fields=(
             Field("summary", "Summary"),
             Field("current_state", "Current state", "text"),
             Field("notes", "Notes"),
         )),
-        EntityType("item", "Item", "Items", (
+        EntityType("item", "Item", "Items", party_plural="Curios", fields=(
             Field("description", "Description"),
             Field("mechanical_effect", "Mechanical effect"),
             Field("notes", "Notes"),
         )),
-        EntityType("adversary", "Adversary", "Adversaries", (
+        EntityType("adversary", "Adversary", "Adversaries", party_plural="Foes", fields=(
             Field("description", "Description"),
             Field("voice", "Voice & mannerisms", dm_only=True),
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
@@ -109,7 +109,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("features", "Features", dm_only=True),
             Field("notes", "Notes"),
         )),
-        EntityType("session", "Session", "Session log", party_plural="The Chronicle", fields=(
+        EntityType("session", "Session", "Session log", party_plural="Chapters", fields=(
             Field("session_date", "Session date", "date"),
             Field("summary", "Summary"),
             Field("notes", "Notes"),

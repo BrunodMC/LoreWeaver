@@ -127,6 +127,7 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 .lamp[data-mode="dark"] .lamp-day { display: none; }
 .lamp[data-mode="dark"] .lamp-night { display: block; }
 .lamp[data-mode="system"] { border-style: dashed; }
+.party-label { font: 400 0.8em var(--f-fell); font-style: italic; color: var(--muted); letter-spacing: 0; text-transform: none; }
 .party-banner { max-width: none; margin: 0; padding-block: 6px; padding-inline: max(20px, env(safe-area-inset-left, 0px)); font: italic 0.92rem var(--f-fell); color: var(--muted); border-bottom: 1px solid var(--line); }
 
 /* ── Controls ─────────────────────────────────────────────────────────── */

@@ -2,7 +2,7 @@
 {% block title %}{{ etype|plural(party_view) }} · LoreWeaver{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>{{ etype|plural(party_view) }}</h1>
+  <h1>{{ etype|plural(party_view) }}{% if not party_view and etype.party_plural %} <span class="party-label" title="What the party's field-book calls them">({{ etype.party_plural }})</span>{% endif %}</h1>
   {% if not party_view %}<a class="button" href="/{{ etype.key }}/new">New {{ etype.label }}</a>{% endif %}
 </div>
 
