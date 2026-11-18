@@ -6,7 +6,7 @@
   <tbody>
     {% for key, t in entity_types.items() if party_counts[key] %}
     <tr>
-      <th><a href="/{{ key }}">{{ t.plural }}</a></th>
+      <th><a href="/{{ key }}">{{ t|plural(true) }}</a></th>
       <td>{{ party_counts[key] }}</td>
     </tr>
     {% endfor %}

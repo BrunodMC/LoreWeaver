@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ etype.plural }} · LoreWeaver{% endblock %}
+{% block title %}{{ etype|plural(party_view) }} · LoreWeaver{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>{{ etype.plural }}</h1>
+  <h1>{{ etype|plural(party_view) }}</h1>
   {% if not party_view %}<a class="button" href="/{{ etype.key }}/new">New {{ etype.label }}</a>{% endif %}
 </div>
 

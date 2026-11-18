@@ -16,7 +16,7 @@
   {% endif %}
   <div class="leaf-text">
     <div>
-      <p class="kicker"><a href="/{{ etype.key }}">{{ etype.plural }}</a></p>
+      <p class="kicker"><a href="/{{ etype.key }}">{{ etype|plural(true) }}</a></p>
       <h1>{{ entity.name }}</h1>
       {% if role %}<p class="role">{{ role }}</p>{% endif %}
     </div>

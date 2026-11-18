@@ -17,6 +17,7 @@ class EntityType:
     plural: str
     fields: tuple[Field, ...]
     default_known: bool = False
+    party_plural: str | None = None  # what the players' field-book calls the list (None: same as plural)
     sort_field: str | None = None  # lists sort by this field first (then by name); None sorts by name only
     party_hidden: bool = False  # prep material (stat sheets): never shown to the party, even if marked known
 
@@ -107,7 +108,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("features", "Features", dm_only=True),
             Field("notes", "Notes"),
         )),
-        EntityType("session", "Session", "Session log", (
+        EntityType("session", "Session", "Session log", party_plural="The Chronicle", fields=(
             Field("session_date", "Session date", "date"),
             Field("summary", "Summary"),
             Field("notes", "Notes"),

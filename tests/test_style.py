@@ -73,3 +73,4 @@ def test_each_view_wears_its_own_look(client):
     client.get("/view/party")
     page = client.get("/").text
     assert 'class="theme-codex party-view"' in page and "Perils" in page and "Drafts to review" not in page
+    assert "The Chronicle" in page and "Session log" not in page
