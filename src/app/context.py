@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import db, knowledge
-from .entity_types import ENTITY_TYPES, EntityType
+from .entity_types import ADVERSARY_ROLES, ENTITY_TYPES, EntityType
 
 CONTEXT_DIR = Path(__file__).resolve().parents[1] / "context"
 MODULES = (("Rules: core", "core.md"), ("Rules: adversaries", "adversaries.md"),
@@ -143,7 +143,7 @@ def system_prompt(conn: sqlite3.Connection, entities: list[dict] | None = None) 
 # ── The request ────────────────────────────────────────────────────────────
 
 def user_prompt(entity_type: str, brief: str, anchors: list[dict],
-                current: dict | None = None, notes: str = "") -> str:
+                current: dict | None = None, notes: str = "", scene: str = "") -> str:
     etype = ENTITY_TYPES[entity_type]
     lines = [f"Draft a new {etype.label}.", f"Brief: {brief.strip() or '(none: use your judgment)'}"]
     if anchors:
@@ -153,6 +153,8 @@ def user_prompt(entity_type: str, brief: str, anchors: list[dict],
         lines.append(ADVERSARY_INSTRUCTION)
     if entity_type == "environment":
         lines.append(ENVIRONMENT_INSTRUCTION)
+    if scene:
+        lines.append(scene)
     if current is not None:
         lines += [
             "",
@@ -374,3 +376,178 @@ def retry_prompt(prompt: str, problems: list[str]) -> str:
     """The same request again, with what was wrong last time."""
     return (prompt + "\n\nYour previous answer had these problems. Fix them and answer again:\n"
             + "\n".join(f"- {p}" for p in problems))
+
+
+# ── Composite encounters: spines, the cast pool, and the shared scene ──────
+# A composite encounter grows in steps the GM checks: three premises ("spines"), then a pool of
+# candidate cast members for the chosen one, then the encounter sheet, then each member's draft.
+
+SPINE_COUNT = 3
+POOL_SIZE = "8-10"
+MORE_SIZE = "4-6"
+POOL_TYPES = ("location", "environment", "adversary", "npc", "item", "faction")
+
+ENCOUNTER_SCOPE = ("An encounter is one scene the party could play in a single sitting: a fight, a tense "
+                   "negotiation, a dangerous crossing, a discovery, an event. It may mix these.")
+
+
+def _setup_lines(brief: str, anchors: list[dict], pcs: int) -> list[str]:
+    lines = [f"Brief: {brief.strip() or '(none: use your judgment)'}",
+             "Respect every constraint the brief sets (where the party is, what's going on, what to avoid)."]
+    if anchors:
+        lines.append("Anchors (the encounter must involve each of these):")
+        lines.extend(f"- {ref(a)}" for a in anchors)
+    lines.append(f"Party: {pcs} PCs.")
+    return lines
+
+
+def spine_prompt(brief: str, anchors: list[dict], pcs: int) -> str:
+    return "\n".join([
+        f"Propose {SPINE_COUNT} distinct premises (\"spines\") for one encounter. {ENCOUNTER_SCOPE}",
+        *_setup_lines(brief, anchors, pcs),
+        "",
+        "Make them genuinely different: a different central conflict or kind of scene each, not three "
+        "variations on one idea. Each must be playable as written and grounded in the bible.",
+    ])
+
+
+def spine_schema() -> dict:
+    return {
+        "type": "object", "additionalProperties": False, "required": ["spines"],
+        "properties": {"spines": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False, "required": ["title", "premise", "why"],
+            "properties": {
+                "title": {"type": "string", "description": "A few words. No secrets."},
+                "premise": {"type": "string", "description": "2-4 sentences: what's happening, who wants what, "
+                                                             "and what makes the scene turn. Secrets in ||bars||."},
+                "why": {"type": "string", "description": "One sentence: how it ties into the bible."},
+            }}}},
+    }
+
+
+def check_spines(data: dict) -> tuple[list[dict], list[str]]:
+    spines = [{k: clean(s.get(k, "")) for k in ("title", "premise", "why")} for s in (data.get("spines") or [])]
+    spines = [s for s in spines if s["title"] and s["premise"]]
+    problems = [] if len(spines) >= 2 else [f"Give {SPINE_COUNT} spines, each with a title and a premise."]
+    for s in spines:
+        if knowledge.has_unclosed_secret(s["premise"]):
+            problems.append(f"The premise of {s['title']!r} has an unclosed || secret marker.")
+    return spines[:SPINE_COUNT], problems
+
+
+def pool_prompt(brief: str, anchors: list[dict], pcs: int, spine: str, existing: list[dict] = ()) -> str:
+    lines = [f"The GM chose this premise for an encounter. {ENCOUNTER_SCOPE}", f"Premise: {spine.strip()}",
+             *_setup_lines(brief, anchors, pcs), ""]
+    if existing:
+        lines += ["The cast pool so far:", *(f"- {pool_line(m)}" for m in existing), "",
+                  f"Propose {MORE_SIZE} more candidates in the same spirit. Don't repeat any of these."]
+    else:
+        lines.append(f"Propose a pool of {POOL_SIZE} candidate cast members: more than the scene needs, so the "
+                     "GM can pick and mix. Offer real alternatives for each slot (two different environments, "
+                     "adversaries across several roles, more than one NPC angle).")
+    lines += [
+        "Mostly locations, environments, adversaries and NPCs. An item or a faction only if the scene turns on it.",
+        "Reuse existing bible entries where they fit: set existing_id and use the entry's exact name.",
+        "Every candidate must fit the premise and be able to share the scene with the others.",
+    ]
+    return "\n".join(lines)
+
+
+def pool_schema() -> dict:
+    return {
+        "type": "object", "additionalProperties": False, "required": ["members"],
+        "properties": {"members": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["type", "name", "pitch", "role", "count", "existing_id"],
+            "properties": {
+                "type": {"type": "string", "enum": list(POOL_TYPES)},
+                "name": {"type": "string", "description": "No secrets in the name."},
+                "pitch": {"type": "string", "description": "One line: who or what, and its part in the scene."},
+                "role": {"type": "string", "enum": [*ADVERSARY_ROLES, ""],
+                         "description": "Adversaries only: their role per the adversary module. Empty otherwise."},
+                "count": {"type": "integer", "description": "Adversaries: how many (for Minions, groups the "
+                                                            "size of the party). Everything else: 1."},
+                "existing_id": {"type": "integer", "description": "The id of the bible entry this reuses, or 0 "
+                                                                  "for a new one."},
+            }}}},
+    }
+
+
+def pool_line(member: dict) -> str:
+    """How a cast member reads in prompts: '[adversary · 2× Standard] Name: pitch (the bible's [ref])'."""
+    kind = member["type"]
+    if kind == "adversary" and member.get("role"):
+        kind += f" · {member['count']}× {member['role']}" if member.get("count", 1) > 1 else f" · {member['role']}"
+    existing = f" (already in the bible as {member['existing_ref']})" if member.get("existing_id") else ""
+    return f"[{kind}] {member['name']}: {member['pitch']}{existing}"
+
+
+def check_pool(data: dict, entities: list[dict]) -> tuple[list[dict], list[str]]:
+    """Normalise proposed cast members. Reused entries take their name, type and role from the bible."""
+    by_id = {e["id"]: e for e in entities}
+    members, problems = [], []
+    for raw in data.get("members") or []:
+        raw = _cleaned(raw)
+        kind, name, pitch = raw.get("type"), raw.get("name", ""), raw.get("pitch", "")
+        role = raw.get("role", "")
+        count = raw.get("count") if isinstance(raw.get("count"), int) and raw.get("count") > 0 else 1
+        member = {"type": kind, "name": name, "pitch": pitch, "role": "", "count": 1, "existing_id": None,
+                  "existing_ref": ""}
+        existing_id = raw.get("existing_id") or 0
+        if existing_id:
+            entry = by_id.get(existing_id)
+            if entry is None:
+                problems.append(f"A candidate reuses entry #{existing_id}, which isn't in the bible.")
+                continue
+            member.update(type=entry["type"], name=entry["name"], existing_id=entry["id"], existing_ref=ref(entry))
+            kind = entry["type"]
+            role = entry["fields"].get("role", "") if kind == "adversary" else ""
+        if kind not in POOL_TYPES:
+            problems.append(f"{name or 'A candidate'} has type {kind!r}; use one of {', '.join(POOL_TYPES)}.")
+            continue
+        if not member["name"]:
+            problems.append("A candidate has no name.")
+            continue
+        if knowledge.MARKER in member["name"]:
+            problems.append(f"The candidate name {member['name']!r} contains a || secret marker.")
+            continue
+        if kind == "adversary":
+            if role not in ADVERSARY_ROLES and not member["existing_id"]:
+                problems.append(f"Adversary {member['name']!r} needs a role: one of {', '.join(ADVERSARY_ROLES)}.")
+                continue
+            member.update(role=role, count=count)
+        members.append(member)
+    if not members and not problems:
+        problems.append("Propose at least one candidate.")
+    return members, problems
+
+
+SHEET_RULE = """\
+This encounter is a composite: you are writing the encounter sheet, the single source of truth that each \
+cast member's draft will follow, drafted separately right after you. Fix the facts they will share: the \
+layout, where everyone is when the scene opens, numbers, phases and stakes. Refer to cast members by \
+their cast names. Leave each member's own details (stat blocks, personalities, backstories) to their drafts."""
+
+MEMBER_RULE = """\
+This entry is one member of a composite encounter. The encounter sheet below is the single source of truth \
+for the scene: its layout, positions, numbers, phases and stakes. Follow it exactly.
+You own only this entry's own details. Don't invent facts about the other cast members or the scene beyond \
+what the sheet says; if you need one, keep it vague in your fields and raise it in dm_notes instead.
+The other new cast members are being drafted at the same time and aren't in the bible yet: refer to them \
+by their cast names, and don't propose links to them (the app links every member to the encounter). Keep \
+the name the cast gives you."""
+
+
+def composite_scene(spine: str, cast: list[dict], sheet: dict | None, budget_line: str) -> str:
+    """The block a composite adds to a draft's request: the sheet rule for the encounter itself, or
+    the ownership rule plus the current sheet for a member."""
+    lines = ["", SHEET_RULE if sheet is None else MEMBER_RULE, "", f"Premise: {spine.strip()}", "Cast:"]
+    lines.extend(f"- {pool_line(m)}" for m in cast)
+    if budget_line:
+        lines.append(f"Battle Points: {budget_line}")
+    if sheet is not None:
+        etype = ENTITY_TYPES["encounter"]
+        lines += ["", f"The encounter sheet: {sheet['name']}"]
+        lines.extend(f"{f.label}: {sheet['fields'][f.key]}" for f in etype.fields
+                     if f.key != "notes" and sheet["fields"].get(f.key))
+    return "\n".join(lines)

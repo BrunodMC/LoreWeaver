@@ -10,7 +10,7 @@ import uuid
 from contextlib import closing
 from dataclasses import dataclass, field
 
-from . import context, db, llm
+from . import battle, context, db, llm
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class GenerationRequest:
     deep: bool = False
     notes: str = ""                # regeneration only
     entity_id: int | None = None   # regeneration only: the draft being replaced
+    composite_id: int | None = None  # part of a composite encounter (found from the history on regeneration)
 
 
 def _current_version(entity: dict) -> dict:
@@ -55,8 +56,10 @@ def run(conn, request: GenerationRequest) -> int:
     anchors = [by_id[a] for a in dict.fromkeys(request.anchor_ids)]
 
     current = _current_version(entity) if entity else None
+    scene = composite_scene(conn, request)
     system = context.system_prompt(conn, entities)
-    prompt = context.user_prompt(request.entity_type, request.brief, anchors, current, request.notes)
+    prompt = context.user_prompt(request.entity_type, request.brief, anchors, current, request.notes,
+                                 scene.text if scene else "")
     schema = context.output_schema(request.entity_type, partial=current is not None)
 
     attempt_prompt = prompt
@@ -70,19 +73,67 @@ def run(conn, request: GenerationRequest) -> int:
         raise GenerationFailed("The draft still had problems after a retry:\n"
                                + "\n".join(f"- {p}" for p in draft.problems))
 
+    if scene and scene.is_sheet:  # the arithmetic is the app's, not the model's
+        draft.fields.pop("battle_points", None)
+        if scene.budget_line:
+            draft.fields["battle_points"] = scene.budget_line
+
     meta = dict(brief=request.brief, notes=request.notes, anchors=[a["id"] for a in anchors],
-                model=result.model, usage=result.usage)
+                model=result.model, usage=result.usage, composite_id=scene.composite_id if scene else None)
     if entity is None:
         entity_id = db.create_entity(conn, request.entity_type, draft.name, draft.fields, status="draft")
         db.record_generation(conn, entity_type=request.entity_type, kind="generated", entity_id=entity_id,
                              output=draft.as_output(), **meta)
-        return entity_id
+    else:
+        entity_id = entity["id"]
+        lineage = snapshot_if_edited(conn, entity)
+        db.update_entity(conn, entity_id, draft.name, draft.fields)
+        db.record_generation(conn, entity_type=request.entity_type, kind="generated", entity_id=entity_id,
+                             lineage_id=lineage, output=draft.as_output(), **meta)
+    if scene:
+        if scene.is_sheet:
+            db.update_composite(conn, scene.composite_id, encounter_id=entity_id)
+        elif scene.encounter_id:
+            db.add_link(conn, entity_id, scene.encounter_id, "appears in")  # no-op if it already exists
+    return entity_id
 
-    lineage = snapshot_if_edited(conn, entity)
-    db.update_entity(conn, entity["id"], draft.name, draft.fields)
-    db.record_generation(conn, entity_type=request.entity_type, kind="generated", entity_id=entity["id"],
-                         lineage_id=lineage, output=draft.as_output(), **meta)
-    return entity["id"]
+
+# ── Composite encounters: what a member or sheet draft adds to its request ──
+
+@dataclass
+class Scene:
+    composite_id: int
+    is_sheet: bool
+    text: str
+    budget_line: str
+    encounter_id: int | None
+
+
+def ticked_cast(composite: dict) -> list[dict]:
+    return [m for m in composite["pool"] if m.get("ticked")]
+
+
+def composite_meter(composite: dict) -> battle.Meter:
+    adversaries = [m for m in ticked_cast(composite) if m["type"] == "adversary"]
+    return battle.meter(composite["pcs"], adversaries, composite["budget"].get("toggles", []))
+
+
+def composite_scene(conn, request: GenerationRequest) -> Scene | None:
+    """The composite block for this request, or None for an ordinary draft. A regenerated member finds
+    its composite through its history and reads the encounter sheet as it is now, hand edits included."""
+    composite_id = request.composite_id
+    if composite_id is None and request.entity_id is not None:
+        composite_id = db.composite_for_entity(conn, request.entity_id)
+    composite = db.get_composite(conn, composite_id) if composite_id else None
+    if composite is None:
+        return None
+    is_sheet = request.entity_type == "encounter" and composite["encounter_id"] in (None, request.entity_id)
+    sheet = None if is_sheet else db.get_entity(conn, composite["encounter_id"]) if composite["encounter_id"] else None
+    if not is_sheet and sheet is None:
+        return None  # the encounter was discarded: draft the member as an ordinary entry
+    budget_line = composite_meter(composite).summary()
+    text = context.composite_scene(composite["spine"], ticked_cast(composite), sheet, budget_line)
+    return Scene(composite["id"], is_sheet, text, budget_line, None if is_sheet else sheet["id"])
 
 
 def snapshot_if_edited(conn, entity: dict) -> int:
@@ -120,9 +171,13 @@ _jobs_lock = threading.Lock()
 INLINE = False  # tests run jobs synchronously
 
 
+MAX_PARALLEL = 4  # a composite fans out; keep the subscription's limits and the machine comfortable
+_slots = threading.BoundedSemaphore(MAX_PARALLEL)
+
+
 def _work(job: Job) -> None:
     try:
-        with closing(db.get_connection()) as conn:
+        with _slots, closing(db.get_connection()) as conn:
             job.entity_id = run(conn, job.request)
         job.status = "done"
     except (GenerationFailed, llm.LLMError) as exc:
