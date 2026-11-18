@@ -2,6 +2,12 @@
 <div id="composite-task" class="job-status job-failed">
   <p class="error">{{ task.label }} didn't come through.</p>
   <pre class="job-error">{{ task.error }}</pre>
+  {% if task.kind == "draft" %}
+  <div class="form-actions">
+    <form method="post" action="/encounters/{{ comp_id }}/redraft" class="inline-form"><button type="submit" class="primary">Try the sheet again</button></form>
+    <form method="post" action="/encounters/{{ comp_id }}/back-to-cast" class="inline-form"><button type="submit">Back to the cast</button></form>
+  </div>
+  {% endif %}
 </div>
 {% else %}
 <div id="composite-task" class="job-status"

@@ -210,6 +210,30 @@ async def draft(request: Request, composite_id: int, conn: Conn):
     return back(composite_id)
 
 
+@router.post("/{composite_id}/redraft")
+async def redraft(request: Request, composite_id: int, conn: Conn):
+    """The sheet call failed: try it again with the cast as saved (no form, so no ticks are lost)."""
+    dm_only(request)
+    comp = workspace_or_404(conn, composite_id)
+    if comp["encounter_id"]:
+        raise HTTPException(409, "The encounter sheet is already drafted")
+    try:
+        composite.start_drafting(conn, composite_id)
+    except composite.CompositeError as exc:
+        conflict(exc)
+    return back(composite_id)
+
+
+@router.post("/{composite_id}/back-to-cast")
+async def back_to_cast(request: Request, composite_id: int, conn: Conn):
+    dm_only(request)
+    comp = workspace_or_404(conn, composite_id)
+    if comp["encounter_id"] or composite.running_task(composite_id):
+        raise HTTPException(409, "The encounter is already drafted")
+    db.update_composite(conn, composite_id, stage="pool")
+    return back(composite_id)
+
+
 @router.post("/{composite_id}/members/{key}/retry")
 async def retry(request: Request, composite_id: int, key: str, conn: Conn):
     dm_only(request)

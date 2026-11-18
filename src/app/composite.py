@@ -251,7 +251,7 @@ def progress(conn, composite: dict) -> dict:
         elif job and job.status == "failed":
             state = "failed"
         else:
-            state = "waiting" if running_task(composite["id"]) else "missing"
+            state = "waiting" if running_task(composite["id"]) or sheet is None else "missing"
         rows.append({"member": member, "state": state, "entity": entity, "job": job})
     busy = running_task(composite["id"]) is not None or any(r["state"] == "running" for r in rows)
     if composite["stage"] == "drafting" and sheet and not busy:

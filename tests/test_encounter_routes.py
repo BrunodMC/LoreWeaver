@@ -166,6 +166,23 @@ def test_discard_all_keeps_the_bible_entries(client, world):
         assert db.get_entity(conn, world["ford"]) is not None
 
 
+def test_a_failed_sheet_can_be_retried_without_losing_the_cast(client, world):
+    script(POOL)
+    cid = composite_id(client.post("/encounters", data={"brief": "x", "action": "skip"}, follow_redirects=False))
+    with closing(db.get_connection()) as conn:
+        key = db.get_composite(conn, cid)["pool"][0]["key"]
+    script(llm.LLMError("boom"), llm.LLMError("boom"))
+    client.post(f"/encounters/{cid}/draft", data={f"tick_{key}": "1"})
+    assert "Try the sheet again" in client.get(f"/encounters/{cid}").text
+
+    script(drafted("Toll at the Ford", {"premise": "Pay."}),
+           drafted("Mud Skulkers", {"description": "Masked.", "role": "Skulk", "tier": "1"}))
+    client.post(f"/encounters/{cid}/redraft")
+    with closing(db.get_connection()) as conn:
+        assert [e["name"] for e in db.composite_members(conn, cid)] == ["Toll at the Ford", "Mud Skulkers"]
+    assert client.post(f"/encounters/{cid}/redraft").status_code == 409
+
+
 def test_inbox_lists_workspaces_being_composed(client, world):
     script(POOL)
     cid = composite_id(client.post("/encounters", data={"brief": "a crossing at dusk", "action": "skip"},
