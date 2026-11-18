@@ -6,6 +6,8 @@
 {# ── The players' codex: a leaf of the field-book ── #}
 {% set role = entity.fields.get("ancestry_role", "")|lore(true, "", entity.id ~ ":ancestry_role") %}
 <article class="leaf{% if etype.key in portrait_types %} with-portrait{% endif %}">
+  {{ ornament.foxing(etype.key, entity.id) }}
+  {{ ornament.lichen(etype.key, entity.id) }}
   {% if etype.key in portrait_types %}
   <figure class="portrait">
     {{ ornament.portrait(etype.key, entity.id) }}

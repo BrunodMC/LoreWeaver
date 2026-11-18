@@ -276,6 +276,82 @@ def cracks(*seed) -> Markup:
     return Markup(f'<g class="crack-lip">{"".join(lips)}</g><g class="crack-cut">{"".join(cuts)}</g>')
 
 
+# ── The codex leaf: lichen in the corners, foxing on the paper ─────────────
+
+LICHEN_SIZE = 260
+CORNERS = ("tl", "tr", "bl", "br")
+
+
+def _lobe(cx, cy, radius, r):
+    """One lichen lobe: a small round blob with a crinkled edge."""
+    n = 14
+    pts = []
+    for k in range(n):
+        t = k / n * math.tau
+        rad = radius * (0.78 + r.random() * 0.4)
+        pts.append((cx + math.cos(t) * rad, cy + math.sin(t) * rad))
+    d = f"M{_f((pts[0][0] + pts[-1][0]) / 2)} {_f((pts[0][1] + pts[-1][1]) / 2)}"
+    for i, (x, y) in enumerate(pts):
+        qx, qy = pts[(i + 1) % n]
+        d += f" Q{_f(x)} {_f(y)} {_f((x + qx) / 2)} {_f((y + qy) / 2)}"
+    return d + " Z"
+
+
+def lichen(*seed) -> Markup:
+    """Lichen creeping in from one or two corners of a leaf. Drawn for the top-left corner; CSS mirrors
+    it into whichever corner the seed picked. Rosettes of overlapping lobes (densest at the corner, paler
+    at the rims), a few ochre cups, and tufts of moss right in the corner."""
+    r = rng("lichen", *seed)
+    corners = r.sample(CORNERS, 1 + (r.random() < 0.55))
+    out = []
+    for corner in corners:
+        s = LICHEN_SIZE
+        rosettes, cups, moss = [], [], []
+        for _ in range(5 + r.randrange(4)):  # rosettes, each a cluster of lobes around its own centre
+            if r.random() < 0.45:  # creeping along one edge of the page, hugging it
+                along, off = r.random() ** 1.3 * s * 0.85, r.random() ** 2.5 * s * 0.08
+                ox, oy = (off, along) if r.random() < 0.5 else (along, off)
+            else:  # bunched into the corner itself
+                ox, oy = (r.random() ** 2.4) * s * 0.3, (r.random() ** 2.4) * s * 0.3
+            spread = 10 + r.random() * 22
+            for _ in range(10 + r.randrange(16)):
+                ang, dist = r.random() * math.tau, (r.random() ** 0.7) * spread
+                x, y = ox + math.cos(ang) * dist, oy + math.sin(ang) * dist
+                if x < -8 or y < -8:
+                    continue
+                size = (3 + r.random() * 9) * (1.25 - min(1, math.hypot(x, y) / s))
+                tone = "lichen-a" if r.random() < 0.6 else "lichen-b"
+                rosettes.append(f'<path class="{tone}" d="{_lobe(x, y, max(1.5, size), r)}"/>')
+                if r.random() < 0.06:
+                    cups.append(f'<circle class="lichen-cup" cx="{_f(x)}" cy="{_f(y)}" r="{1.2 + r.random() * 2.2:.2f}"/>')
+        for _ in range(14 + r.randrange(14)):  # moss: short curling strokes tucked into the corner
+            x, y = r.random() ** 2 * s * 0.22, r.random() ** 2 * s * 0.22
+            ang, length = r.random() * math.tau, 3 + r.random() * 7
+            moss.append(f'<path class="moss-tuft" d="M{_f(x)} {_f(y)} q {_f(math.cos(ang) * length * 0.6)} '
+                        f'{_f(math.sin(ang) * length * 0.6 - 2)} {_f(math.cos(ang) * length)} {_f(math.sin(ang) * length)}"/>')
+        out.append(f'<svg class="lichen lichen-{corner}" viewBox="0 0 {s} {s}" width="{s}" height="{s}" aria-hidden="true" '
+                   f'focusable="false">{"".join(rosettes)}{"".join(cups)}{"".join(moss)}</svg>')
+    return Markup("".join(out))
+
+
+def foxing(*seed) -> Markup:
+    """Age spots on the paper: a few faint brown stains, soft-edged, scattered by the seed."""
+    r = rng("foxing", *seed)
+    spots = []
+    for _ in range(2 + r.randrange(4)):
+        x, y, rad = r.random() * 1000, r.random() * 1000, 4 + r.random() * 16
+        spots.append(f'<ellipse cx="{_f(x)}" cy="{_f(y)}" rx="{_f(rad)}" ry="{_f(rad * (0.7 + r.random() * 0.5))}" '
+                     f'fill="url(#fox)" opacity="{0.2 + r.random() * 0.35:.2f}"/>')
+    return Markup('<svg class="foxing" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
+                  '<defs><radialGradient id="fox"><stop offset="0" class="fox-core"/><stop offset="0.7" class="fox-mid"/>'
+                  '<stop offset="1" class="fox-edge"/></radialGradient>'
+                  '<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" '
+                  'baseFrequency="0.9" numOctaves="3" seed="7" result="n"/><feColorMatrix in="n" type="matrix" '
+                  'values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.09 -0.02"/></filter></defs>'
+                  '<rect class="grain" width="1000" height="1000" filter="url(#grain)"/>'
+                  + "".join(spots) + "</svg>")
+
+
 # ── An ink-wash portrait, until there's a real one ─────────────────────────
 
 def portrait(*seed) -> Markup:

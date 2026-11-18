@@ -13,6 +13,7 @@
   --cx-bg: #e6e8dc; --cx-panel: #f1f1e8; --cx-fg: #2a2622; --cx-muted: #6a6358; --cx-line: #c9c7b3;
   --cx-moss: #55663a; --cx-bloom: #3f6f93; --cx-bloom-fg: #f1f1e8; --cx-chip: #e1e2d2;
   --ink: #1c1814; --decoy: 0.62;
+  --cx-age: #9a6a2a; --cx-lichen-a: #a9b39a; --cx-lichen-b: #c3c88f; --cx-lichen-rim: #e9ecd9; --cx-lichen-cup: #c98a2e;
   /* shared */
   --ok: #2f7a45; --ok-bg: #e5f1e8; --warn: #8a6100; --warn-bg: #fbf1d6; --danger: #a8322a; --danger-bg: #fbe9e7;
   --mark: #f3dc8a; --c-hope: #8a6200; --c-fear: #6b3fa0; --c-stress: #a8500c; --c-hp: #b42318;
@@ -31,6 +32,7 @@
     --cx-bg: #0f140f; --cx-panel: #161d16; --cx-fg: #ddd8c8; --cx-muted: #9a9584; --cx-line: #33402f;
     --cx-moss: #9db574; --cx-bloom: #8ec3e6; --cx-bloom-fg: #0f140f; --cx-chip: #1f281f;
     --ink: #050403; --decoy: 0.35;
+    --cx-age: #000000; --cx-lichen-a: #4f5c46; --cx-lichen-b: #6b7148; --cx-lichen-rim: #7f8c6a; --cx-lichen-cup: #b07a2a;
     --ok: #7fc794; --ok-bg: #18291d; --warn: #e3bd5d; --warn-bg: #2d2511; --danger: #f08b80; --danger-bg: #331816;
     --mark: #6b5a1c; --c-hope: #e8c15a; --c-fear: #c9a6f7; --c-stress: #f0a35e; --c-hp: #f08b80;
     color-scheme: dark;
@@ -43,6 +45,7 @@
   --cx-bg: #0f140f; --cx-panel: #161d16; --cx-fg: #ddd8c8; --cx-muted: #9a9584; --cx-line: #33402f;
   --cx-moss: #9db574; --cx-bloom: #8ec3e6; --cx-bloom-fg: #0f140f; --cx-chip: #1f281f;
   --ink: #050403; --decoy: 0.35;
+  --cx-age: #000000; --cx-lichen-a: #4f5c46; --cx-lichen-b: #6b7148; --cx-lichen-rim: #7f8c6a; --cx-lichen-cup: #b07a2a;
   --ok: #7fc794; --ok-bg: #18291d; --warn: #e3bd5d; --warn-bg: #2d2511; --danger: #f08b80; --danger-bg: #331816;
   --mark: #6b5a1c; --c-hope: #e8c15a; --c-fear: #c9a6f7; --c-stress: #f0a35e; --c-hp: #f08b80;
   color-scheme: dark;
@@ -311,8 +314,25 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M1 7 L5 2 L6 8 L10 2 L11 8 L15 2 L16 8 L19 3' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 /* ── The party's entry: a leaf of the field-book ──────────────────────── */
-.leaf { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 30px 34px 34px;
-  box-shadow: 0 1px 0 var(--line), 0 18px 40px -28px rgb(0 0 0 / 0.55); }
+.leaf { position: relative; isolation: isolate; overflow: hidden; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 3px; padding: 30px 34px 34px;
+  box-shadow: inset 0 0 70px color-mix(in srgb, var(--cx-age) 22%, transparent), 0 1px 0 var(--line), 0 18px 40px -28px rgb(0 0 0 / 0.55); }
+.leaf > *:not(.lichen):not(.foxing) { position: relative; z-index: 1; }
+/* Age on the page (ornament.py): grain and foxing across it, lichen creeping in from a corner. */
+.foxing { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.foxing .grain { fill: var(--cx-age); }
+.foxing .fox-core { stop-color: var(--cx-age); stop-opacity: 0.55; }
+.foxing .fox-mid { stop-color: var(--cx-age); stop-opacity: 0.18; }
+.foxing .fox-edge { stop-color: var(--cx-age); stop-opacity: 0; }
+.lichen { position: absolute; z-index: 0; width: 210px; height: 210px; pointer-events: none; overflow: visible; }
+.lichen-tl { top: 0; left: 0; }
+.lichen-tr { top: 0; right: 0; transform: scaleX(-1); }
+.lichen-bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.lichen-br { bottom: 0; right: 0; transform: scale(-1, -1); }
+.lichen .lichen-a { fill: var(--cx-lichen-a); stroke: var(--cx-lichen-rim); stroke-width: 0.8; opacity: 0.85; }
+.lichen .lichen-b { fill: var(--cx-lichen-b); stroke: var(--cx-lichen-rim); stroke-width: 0.8; opacity: 0.8; }
+.lichen .lichen-cup { fill: var(--cx-lichen-cup); }
+.lichen .moss-tuft { fill: none; stroke: var(--cx-moss); stroke-width: 1.3; stroke-linecap: round; opacity: 0.7; }
 .leaf.with-portrait { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px 34px; align-items: start; }
 .leaf-text { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .leaf h1 { margin: 2px 0 0; }
