@@ -33,12 +33,18 @@
   <a class="brand" href="/">{% if party_view %}The <em>Field</em>-Book{% else %}LORE<span>·</span>WEAVER{% endif %}</a>
   <nav class="site-nav" aria-label="Bible sections">
     {% for key, dm_label, party_label, types in nav_groups %}
+    {% set shown = types|select("in", entity_types)|reject("party_hidden_for", party_view)|list %}
+    {% if shown|length == 1 %}{# a menu of one is just a link #}
+    {% set t = shown[0] %}
+    <a class="nav-link" href="/{{ t }}">{{ entity_types[t]|plural(party_view) }}{% if not party_view and entity_types[t].party_plural %} <span class="party-label">({{ entity_types[t].party_plural }})</span>{% endif %}</a>
+    {% elif shown %}
     <details class="nav-group">
       <summary>{{ party_label if party_view else dm_label }}</summary>
       <div class="nav-menu">
-        {% for t in types if t in entity_types and not (party_view and entity_types[t].party_hidden) %}<a href="/{{ t }}">{{ entity_types[t]|plural(party_view) }}{% if not party_view and entity_types[t].party_plural %} <span class="party-label">({{ entity_types[t].party_plural }})</span>{% endif %}</a>{% endfor %}
+        {% for t in shown %}<a href="/{{ t }}">{{ entity_types[t]|plural(party_view) }}{% if not party_view and entity_types[t].party_plural %} <span class="party-label">({{ entity_types[t].party_plural }})</span>{% endif %}</a>{% endfor %}
       </div>
     </details>
+    {% endif %}
     {% endfor %}
   </nav>
   {% if not party_view %}

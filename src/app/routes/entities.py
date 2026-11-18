@@ -34,6 +34,7 @@ def roman(number: int) -> str:
 
 
 templates.env.filters["roman"] = roman
+templates.env.tests["party_hidden_for"] = lambda type_key, party_view: party_view and ENTITY_TYPES[type_key].party_hidden
 templates.env.filters["plural"] = lambda etype, party_view=False: (etype.party_plural or etype.plural) if party_view else etype.plural
 templates.env.filters["statblock"] = statblock.render
 templates.env.globals["statblock_mechanics"] = statblock.mechanics

@@ -74,7 +74,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("mechanical_effect", "Mechanical effect"),
             Field("notes", "Notes"),
         )),
-        EntityType("adversary", "Adversary", "Adversaries", party_plural="Foes", fields=(
+        EntityType("adversary", "Adversary", "Adversaries", party_plural="Perils", fields=(
             Field("description", "Description"),
             Field("voice", "Voice & mannerisms", dm_only=True),
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
@@ -125,8 +125,8 @@ PARTY_TYPES_SQL = "type NOT IN (" + ",".join(f"'{k}'" for k in PARTY_HIDDEN) + "
 # The navigation groups the types (ten in one row overflowed). The party's codex names them in its
 # own voice; the DM's archive keeps the plain names.
 NAV_GROUPS = (
-    ("people", "People", "People", ("npc", "pc")),
-    ("places", "Places", "Places", ("location", "faction")),
+    ("people", "People", "People", ("npc", "pc", "faction")),  # factions are organised people, not places
+    ("places", "Places", "Places", ("location",)),
     ("threats", "Threats", "Perils", ("adversary", "environment", "encounter")),
     ("story", "Story", "Tales", ("arc", "item", "session")),
 )

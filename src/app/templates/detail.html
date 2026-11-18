@@ -70,6 +70,9 @@
                 onsubmit="return confirm('Reveal the true name, {{ entity.name|e }}, to the party?')">
             <button type="submit" class="link-action">reveal true name</button>
           </form></p>
+        {% elif not etype.party_hidden %}
+        <p class="alias"><a class="hint" href="/{{ etype.key }}/{{ entity.id }}/edit#party_name"
+          title="If the real name is a secret: what the party calls them instead">+ a name the party knows instead</a></p>
         {% endif %}
         {% if entity.fields.ancestry_role %}
         {% set role_reveal = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/ancestry_role" if can_reveal else "" %}
