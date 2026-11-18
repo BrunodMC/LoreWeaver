@@ -20,6 +20,8 @@ class EntityType:
     sort_field: str | None = None  # lists sort by this field first (then by name); None sorts by name only
 
 
+ENVIRONMENT_TYPES = ("Exploration", "Social", "Traversal", "Event")
+
 ADVERSARY_ROLES = ("Bruiser", "Horde", "Leader", "Minion", "Ranged", "Skulk",
                    "Social", "Solo", "Standard", "Support")
 
@@ -83,6 +85,16 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("attack_modifier", "ATK", "text", dm_only=True),
             Field("standard_attack", "Standard attack (name: range | damage)", "text", dm_only=True),
             Field("experience", "Experience", "text", dm_only=True),
+            Field("features", "Features", dm_only=True),
+            Field("notes", "Notes"),
+        )),
+        EntityType("environment", "Environment", "Environments", (
+            Field("description", "Description"),  # one evocative line; the rest is the GM's stat block
+            Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
+            Field("env_type", "Type", "select", ENVIRONMENT_TYPES, dm_only=True),
+            Field("impulses", "Impulses", "text", dm_only=True),
+            Field("difficulty", "Difficulty", "text", dm_only=True),  # text: it can be "Special"
+            Field("potential_adversaries", "Potential adversaries", "text", dm_only=True),
             Field("features", "Features", dm_only=True),
             Field("notes", "Notes"),
         )),

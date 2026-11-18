@@ -14,7 +14,8 @@ from . import db, knowledge
 from .entity_types import ENTITY_TYPES, EntityType
 
 CONTEXT_DIR = Path(__file__).resolve().parents[1] / "context"
-MODULES = (("Rules: core", "core.md"), ("Rules: adversaries", "adversaries.md"), ("Campaign frame", "witherwild.md"))
+MODULES = (("Rules: core", "core.md"), ("Rules: adversaries", "adversaries.md"),
+           ("Rules: environments", "environments.md"), ("Campaign frame", "witherwild.md"))
 TYPE_ORDER = tuple(ENTITY_TYPES)
 
 SYSTEM_PREAMBLE = """\
@@ -61,6 +62,13 @@ FIELD_HINTS: dict[tuple[str, str], str] = {
     ("adversary", "thresholds"): "Major/severe, like 7/14, per the tier benchmarks.",
     ("adversary", "standard_attack"): "Name: range | damage, like Claws: Melee | 1d8+2 phy.",
     ("adversary", "features"): "One feature per line: Name - Action/Reaction/Passive: effect.",
+    ("environment", "description"): "One evocative line: what the party sees and feels. Player-safe unless barred.",
+    ("environment", "impulses"): "2-3 short phrases for how the place pushes and pulls people, per the environment module.",
+    ("environment", "difficulty"): "A number per the tier benchmarks, or 'Special' if a feature sets it.",
+    ("environment", "potential_adversaries"): "Adversaries that might appear here, grouped under fictional labels; "
+                                               "prefer ones in the bible.",
+    ("environment", "features"): "3-4 features. Each: 'Name - Passive/Action/Reaction: effect' on one line, then "
+                                 "its feature questions on the next line. A blank line between features.",
 }
 
 # Fields the model never writes: Notes are the GM's own. The model's notes go in its dm_notes answer.
@@ -68,6 +76,8 @@ MODEL_SKIPS = {"notes"}
 
 ADVERSARY_INSTRUCTION = ("Build the full stat block per the adversary module. If the brief doesn't set a tier, "
                          "use the party's tier from the bible, defaulting to tier 1.")
+ENVIRONMENT_INSTRUCTION = ("Build the full stat block per the environment module. If the brief doesn't set a tier, "
+                           "use the party's tier from the bible, defaulting to tier 1.")
 
 
 # ── Gathering the bible ────────────────────────────────────────────────────
@@ -134,6 +144,8 @@ def user_prompt(entity_type: str, brief: str, anchors: list[dict],
         lines.extend(f"- {ref(a)}" for a in anchors)
     if entity_type == "adversary":
         lines.append(ADVERSARY_INSTRUCTION)
+    if entity_type == "environment":
+        lines.append(ENVIRONMENT_INSTRUCTION)
     if current is not None:
         lines += [
             "",

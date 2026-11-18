@@ -182,3 +182,22 @@ def test_check_validates_canon_implications(conn, bible):
     assert draft.as_output()["canon_implications"] == draft.implications
     assert "canon_implications" in context.output_schema("npc")["required"]
     assert "canon_implications" in context.SYSTEM_PREAMBLE
+
+
+def test_environments_module_and_type_feed_generation(conn):
+    assert "## Rules: environments" in context.system_prompt(conn)
+    prompt = context.user_prompt("environment", "a flooded ford", [])
+    assert context.ENVIRONMENT_INSTRUCTION in prompt
+    assert context.ENVIRONMENT_INSTRUCTION not in context.user_prompt("adversary", "", [])
+    schema = context.output_schema("environment")["properties"]["fields"]
+    assert schema["properties"]["env_type"]["enum"] == ["Exploration", "Social", "Traversal", "Event"]
+    assert "feature questions" in schema["properties"]["features"]["description"]
+
+
+def test_check_accepts_a_special_environment_difficulty(conn):
+    data = answer(name="Ambush at the ford", fields={
+        "description": "Reeds hide bows.", "tier": "1", "env_type": "Event", "impulses": "Overwhelm, scatter",
+        "difficulty": "Special", "potential_adversaries": "Any", "features": "Surprise! - Action: gain 2 Fear."})
+    assert context.check(data, "environment", [], []).problems == []
+    data["fields"]["env_type"] = "Combat"
+    assert "Type must be one of" in "\n".join(context.check(data, "environment", [], []).problems)

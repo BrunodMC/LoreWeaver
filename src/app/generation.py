@@ -15,7 +15,7 @@ from . import context, db, llm
 log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 2  # one retry, told what was wrong; after that the GM sees the problems
-GENERATABLE = ("npc", "location", "faction", "arc", "item", "adversary")  # PCs belong to players; sessions to play
+GENERATABLE = ("npc", "location", "faction", "arc", "item", "adversary", "environment")  # PCs belong to players; sessions to play
 JOBS_TO_KEEP = 50
 
 
