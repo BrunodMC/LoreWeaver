@@ -4,6 +4,39 @@ from src.app import db
 from src.app.entity_types import ENTITY_TYPES, NAV_GROUPS
 
 
+def test_prep_sheets_never_reach_the_party(client):
+    with closing(db.get_connection()) as conn:
+        enc = db.create_entity(conn, "encounter", "Ambush at the ford", {"premise": "Reeds."}, known=True)
+        env = db.create_entity(conn, "environment", "Flooded ford", {"description": "Brown water."}, known=True)
+        place = db.create_entity(conn, "location", "The ford", {}, known=True)
+        db.add_link(conn, place, enc, "scene of", known=True)
+        assert not db.visible_to_party(db.get_entity(conn, enc))
+        assert db.party_counts(conn)["encounter"] == 0 and db.party_counts(conn)["environment"] == 0
+    client.get("/view/party")
+    assert client.get(f"/encounter/{enc}").status_code == 404
+    assert client.get(f"/environment/{env}").status_code == 404
+    assert "Ambush" not in client.get("/encounter").text and "Ambush" not in client.get("/search?q=ambush").text
+    assert "Ambush" not in client.get(f"/location/{place}").text
+    nav = client.get("/").text
+    assert 'href="/encounter"' not in nav and 'href="/environment"' not in nav and 'href="/adversary"' in nav
+
+
+def test_a_secret_can_be_teased_and_untoggled(client):
+    from src.app import knowledge
+    with closing(db.get_connection()) as conn:
+        npc = db.create_entity(conn, "npc", "Mara", {"hook": "Rows. ||Owes the guild.||", "voice": "||Whispers.||"})
+    page = client.get(f"/npc/{npc}").text
+    assert page.count("tease-toggle") == 1  # the hook only: the party never sees voice anyway
+    tag = knowledge.passage_tag("Owes the guild.")
+    client.post(f"/npc/{npc}/tease/hook/0", data={"tag": tag})
+    with closing(db.get_connection()) as conn:
+        assert db.get_entity(conn, npc)["fields"]["hook"] == "Rows. ||~Owes the guild.||"
+    client.post(f"/npc/{npc}/tease/hook/0", data={"tag": knowledge.passage_tag("~Owes the guild.")})
+    with closing(db.get_connection()) as conn:
+        assert db.get_entity(conn, npc)["fields"]["hook"] == "Rows. ||Owes the guild.||"
+    assert client.post(f"/npc/{npc}/tease/voice/0", data={"tag": "x"}).status_code == 404
+
+
 def test_an_unfiled_reveal_can_be_dismissed(client):
     with closing(db.get_connection()) as conn:
         entry = db.create_entity(conn, "npc", "Mara", {}, known=True)

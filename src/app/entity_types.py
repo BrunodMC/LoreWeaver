@@ -18,6 +18,7 @@ class EntityType:
     fields: tuple[Field, ...]
     default_known: bool = False
     sort_field: str | None = None  # lists sort by this field first (then by name); None sorts by name only
+    party_hidden: bool = False  # prep material (stat sheets): never shown to the party, even if marked known
 
 
 ENVIRONMENT_TYPES = ("Exploration", "Social", "Traversal", "Event")
@@ -88,7 +89,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("features", "Features", dm_only=True),
             Field("notes", "Notes"),
         )),
-        EntityType("encounter", "Encounter", "Encounters", (
+        EntityType("encounter", "Encounter", "Encounters", party_hidden=True, fields=(
             Field("premise", "Premise"),
             Field("setting", "Setting & layout"),
             Field("stakes", "Stakes"),
@@ -96,7 +97,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("phases", "Phases", dm_only=True),
             Field("notes", "Notes"),
         )),
-        EntityType("environment", "Environment", "Environments", (
+        EntityType("environment", "Environment", "Environments", party_hidden=True, fields=(
             Field("description", "Description"),  # one evocative line; the rest is the GM's stat block
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
             Field("env_type", "Type", "select", ENVIRONMENT_TYPES, dm_only=True),
@@ -115,6 +116,9 @@ ENTITY_TYPES: dict[str, EntityType] = {
 }
 
 STATUSES = ("draft", "canon", "archived")
+PARTY_HIDDEN = tuple(k for k, t in ENTITY_TYPES.items() if t.party_hidden)
+# SQL for "a type the party may ever see"; the names are our own constants, never user input.
+PARTY_TYPES_SQL = "type NOT IN (" + ",".join(f"'{k}'" for k in PARTY_HIDDEN) + ")" if PARTY_HIDDEN else "1 = 1"
 
 # The navigation groups the types (ten in one row overflowed). The party's codex names them in its
 # own voice; the DM's archive keeps the plain names.

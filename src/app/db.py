@@ -6,7 +6,7 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
-from .entity_types import ENTITY_TYPES, STATUSES
+from .entity_types import ENTITY_TYPES, PARTY_HIDDEN, PARTY_TYPES_SQL, STATUSES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
@@ -95,7 +95,8 @@ def get_entity(conn: sqlite3.Connection, entity_id: int) -> dict | None:
 
 
 def visible_to_party(entity: dict) -> bool:
-    return entity["status"] == "canon" and bool(entity["known_to_party"])
+    return (entity["status"] == "canon" and bool(entity["known_to_party"])
+            and entity["type"] not in PARTY_HIDDEN)
 
 
 def natural_key(text: str) -> list:
@@ -122,7 +123,7 @@ def list_entities(conn: sqlite3.Connection, entity_type: str, statuses: tuple[st
     if party_view:
         statuses = ("canon",)
     placeholders = ",".join("?" * len(statuses))
-    party_filter = " AND known_to_party = 1" if party_view else ""
+    party_filter = f" AND known_to_party = 1 AND {PARTY_TYPES_SQL}" if party_view else ""
     rows = conn.execute(
         f"SELECT * FROM entities WHERE type = ? AND status IN ({placeholders}){party_filter}",
         (entity_type, *statuses),
@@ -142,7 +143,8 @@ def link_targets(conn: sqlite3.Connection, exclude_id: int) -> list[dict]:
 def links_for(conn: sqlite3.Connection, entity_id: int, party_view: bool = False) -> dict[str, list[dict]]:
     """Party view only shows known links whose other end is itself visible to the party."""
     party_filter = (
-        " AND l.known_to_party = 1 AND e.known_to_party = 1 AND e.status = 'canon'" if party_view else ""
+        " AND l.known_to_party = 1 AND e.known_to_party = 1 AND e.status = 'canon' AND e." + PARTY_TYPES_SQL
+        if party_view else ""
     )
     columns = (
         "SELECT l.id, l.relation_label, l.known_to_party, e.id AS other_id, e.type AS other_type, "
@@ -184,7 +186,8 @@ def status_counts(conn: sqlite3.Connection) -> dict[str, dict[str, int]]:
 def party_counts(conn: sqlite3.Connection) -> dict[str, int]:
     counts = {t: 0 for t in ENTITY_TYPES}
     for row in conn.execute(
-        "SELECT type, COUNT(*) FROM entities WHERE status = 'canon' AND known_to_party = 1 GROUP BY type"
+        f"SELECT type, COUNT(*) FROM entities WHERE status = 'canon' AND known_to_party = 1 AND {PARTY_TYPES_SQL} "
+        "GROUP BY type"
     ):
         if row[0] in counts:
             counts[row[0]] = row[1]

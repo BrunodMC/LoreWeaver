@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from markupsafe import Markup, escape
 
 from . import db, knowledge
-from .entity_types import ENTITY_TYPES
+from .entity_types import ENTITY_TYPES, PARTY_TYPES_SQL
 
 SNIPPET_BEFORE = 60
 SNIPPET_AFTER = 140
@@ -190,7 +190,7 @@ def search(conn: sqlite3.Connection, query: str, statuses: tuple[str, ...],
     sql = f"SELECT * FROM entities WHERE status IN ({','.join('?' * len(statuses))})"
     params: list = list(statuses)
     if party_view:
-        sql += " AND known_to_party = 1"
+        sql += f" AND known_to_party = 1 AND {PARTY_TYPES_SQL}"
     if type_key:
         sql += " AND type = ?"
         params.append(type_key)

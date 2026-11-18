@@ -313,6 +313,26 @@ async def change_known(request: Request, type_key: str, entity_id: int, conn: Co
     return render_status(request, conn, etype, entity_id)
 
 
+@router.post("/{type_key}/{entity_id}/tease/{field_key}/{index}")
+async def tease_passage(request: Request, type_key: str, entity_id: int, field_key: str, index: int, conn: Conn):
+    """Turn one secret passage into a tease (the party sees it struck out in ink), or back."""
+    if is_party_view(request):
+        raise HTTPException(404, "Not available in party view")
+    etype = entity_type_or_404(type_key)
+    entity = entity_or_404(conn, type_key, entity_id)
+    field = next((f for f in etype.fields if f.key == field_key), None)
+    if field is None or field.dm_only:
+        raise HTTPException(404, "No such field the party could see")
+    try:
+        text, _ = knowledge.toggle_tease(entity["fields"].get(field_key, ""), index, str((await request.form()).get("tag", "")))
+    except knowledge.PassageGone as exc:
+        raise HTTPException(409, str(exc)) from None
+    db.update_entity(conn, entity_id, entity["name"], dict(entity["fields"], **{field_key: text}))
+    if request.headers.get("HX-Request"):
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
+
+
 @router.post("/{type_key}/{entity_id}/reveal/{field_key}/{index}")
 async def reveal_passage(request: Request, type_key: str, entity_id: int, field_key: str, index: int, conn: Conn):
     """Reveal one ||secret|| passage of an entry the party already knows: its bars go, and the reveal

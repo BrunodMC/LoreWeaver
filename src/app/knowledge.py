@@ -72,6 +72,19 @@ def reveal_passage(text: str, index: int, tag: str) -> tuple[str, str]:
     return out, parts[k]
 
 
+def toggle_tease(text: str, index: int, tag: str) -> tuple[str, bool]:
+    """Turn the index-th secret passage into a tease, or back into a plain secret. Returns (new text,
+    whether it's now teased)."""
+    passages = secret_passages(text)
+    if not 0 <= index < len(passages) or passage_tag(passages[index]) != tag:
+        raise PassageGone("That passage changed since the page loaded. Reload and try again.")
+    parts = text.split(MARKER)
+    k = 2 * index + 1
+    teased = not is_tease(parts[k])
+    parts[k] = TEASE + parts[k] if teased else untease(parts[k])
+    return MARKER.join(parts), teased
+
+
 class CannotBar(ValueError):
     """The quote isn't wholly inside the visible text, so it can't be hidden automatically."""
 
@@ -108,8 +121,13 @@ def _party_render(text: str, seed: str) -> Markup:
     return html
 
 
-def render(text: str, party_view: bool = False, reveal_url: str = "", seed: str = "") -> Markup:
+TEASE_ICON = ('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
+              'stroke-linejoin="round" aria-hidden="true"><path d="M2 15 L6 8 L8 16 L12 8 L14 16 L18 8 L22 14"/></svg>')
+
+
+def render(text: str, party_view: bool = False, reveal_url: str = "", seed: str = "", tease_url: str = "") -> Markup:
     """reveal_url (DM view only): give each closed secret a control that reveals just that passage.
+    tease_url (DM view only): and one that turns it into a tease (or back into a plain secret).
     seed (party view): makes each tease's ink unique to its entry and field, and stable."""
     if party_view:
         return _party_render(text, seed)
@@ -130,6 +148,12 @@ def render(text: str, party_view: bool = False, reveal_url: str = "", seed: str 
                            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
                            'aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/>'
                            '<circle cx="12" cy="12" r="3"/></svg></button>').format(reveal_url, index, passage_tag(part))
+        if tease_url and index < addressable:
+            title = ("Stop teasing: hide this passage completely" if is_tease(part)
+                     else "Tease: the party sees this line struck out in ink, never the words")
+            span += Markup('<button type="button" class="passage-tool tease-toggle{}" title="{}" '
+                           'hx-post="{}/{}" hx-vals=\'{{"tag": "{}"}}\'>{}</button>').format(
+                " on" if is_tease(part) else "", title, tease_url, index, passage_tag(part), Markup(TEASE_ICON))
         index += 1
         pieces.append(span)
     return Markup("").join(pieces)

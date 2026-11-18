@@ -63,7 +63,7 @@
         <h1>{{ entity.name }}</h1>
         {% if entity.fields.ancestry_role %}
         {% set role_reveal = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/ancestry_role" if can_reveal else "" %}
-        <p class="role">{{ entity.fields.ancestry_role|lore(false, role_reveal) }}</p>
+        <p class="role">{{ entity.fields.ancestry_role|lore(false, role_reveal, "", "/" ~ etype.key ~ "/" ~ entity.id ~ "/tease/ancestry_role") }}</p>
         {% endif %}
       </div>
     </div>
@@ -89,7 +89,8 @@
   <dl class="fields">
     {% for f in etype.fields if f.key != "ancestry_role" or not entity.fields.ancestry_role %}
     {% set reveal_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/" ~ f.key if can_reveal and not f.dm_only else "" %}
-    {% set shown = entity.fields.get(f.key, "")|lore(false, reveal_url) %}
+    {% set tease_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/tease/" ~ f.key if not f.dm_only and not etype.party_hidden else "" %}
+    {% set shown = entity.fields.get(f.key, "")|lore(false, reveal_url, "", tease_url) %}
     <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
     {% if f.key == "features" and shown %}
     <dd class="statblock">{{ entity.fields.features|statblock }}</dd>

@@ -73,6 +73,7 @@ a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; padding-inline: max(20px, env(safe-area-inset-left, 0px)) max(20px, env(safe-area-inset-right, 0px)); }
 .theme-codex main { max-width: 900px; }
+.theme-archive main { max-width: 1180px; }
 h1, h2, h3 { text-wrap: balance; }
 h1 { margin: 0 0 18px; font-family: var(--f-display); font-weight: 600; font-size: 1.85rem; letter-spacing: 0.03em; line-height: 1.15; }
 .theme-codex h1 { font-weight: 400; font-size: 2.4rem; letter-spacing: 0; }
@@ -169,8 +170,9 @@ input[type="checkbox"] { accent-color: var(--action); }
 .secret-link { opacity: 0.85; }
 .secret-link .relation { font-style: italic; }
 .secret-toggle { color: var(--secret-fg); background: var(--secret-bg); border-color: color-mix(in srgb, var(--secret-fg) 35%, transparent); }
-.reveal-passage { display: inline-flex; border: none; background: none; padding: 0 2px; margin-left: 1px; cursor: pointer; color: var(--secret-fg); opacity: 0.6; vertical-align: -2px; }
-.reveal-passage:hover { opacity: 1; border: none; }
+.reveal-passage, .passage-tool { display: inline-flex; border: none; background: none; padding: 0 2px; margin-left: 1px; cursor: pointer; color: var(--secret-fg); opacity: 0.6; vertical-align: -2px; }
+.reveal-passage:hover, .passage-tool:hover { opacity: 1; border: none; }
+.tease-toggle.on { color: var(--accent); opacity: 0.95; }
 
 /* ── Tables and lists ─────────────────────────────────────────────────── */
 table { border-collapse: collapse; width: 100%; }
@@ -288,7 +290,7 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
 /* ── The DM's entry: a catalogued marble slab ─────────────────────────── */
 .sheet { position: relative; isolation: isolate; }
 .sheet > *:not(.slab) { position: relative; }
-.slab { position: absolute; z-index: -1; top: -28px; left: -28px; right: -28px; width: calc(100% + 56px); height: min(100%, 900px);
+.slab { position: absolute; z-index: -1; top: -28px; left: calc(50% - 50vw); width: 100vw; height: min(calc(100% + 28px), 1000px);  /* full-bleed: a wall of stone behind the page */
   pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent); }
 .slab .stain-flood { flood-color: var(--ar-stain); }
 .slab .vein-flood { flood-color: var(--ar-vein); }
@@ -396,5 +398,4 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
   .portrait { max-width: 230px; }
   .plate { align-items: flex-start; }
   .seal { width: 40px; height: 40px; }
-  .slab { left: -20px; right: -20px; width: calc(100% + 40px); }
 }
