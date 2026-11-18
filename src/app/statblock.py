@@ -28,9 +28,25 @@ TERMS = re.compile("|".join([
 ]))
 
 
+RESOURCE_CLASS = {"HP": "hp", "Stress": "stress", "Hope": "hope", "Fear": "fear", "Armor": "armor"}
+
+# Fields that are mechanics, not prose: they get the same emphasis as features. Prose fields don't, since a
+# sentence starting "Far from home…" or "Fear gripped…" would light up for nothing.
+MECHANICAL = {("adversary", "standard_attack"), ("adversary", "thresholds"), ("adversary", "experience"),
+              ("encounter", "battle_points"), ("encounter", "phases"), ("encounter", "spoils")}
+ATTACK = re.compile(r"^\s*(?P<name>[^:|\n]{1,60}):\s*(?P<rest>.*)$")
+
+
+def _term(m: re.Match) -> str:
+    kind = m.lastgroup
+    if kind == "res":
+        word = m.group(0).split()[-1]
+        kind = RESOURCE_CLASS.get(word.rstrip("s"), RESOURCE_CLASS.get(word, "res"))
+    return f'<span class="t-{kind}">{m.group(0)}</span>'
+
+
 def _emphasize(text: str) -> Markup:
-    escaped = str(escape(text))
-    return Markup(TERMS.sub(lambda m: f'<span class="t-{m.lastgroup}">{m.group(0)}</span>', escaped))
+    return Markup(TERMS.sub(_term, str(escape(text))))
 
 
 def _inline(text: str) -> Markup:
@@ -40,6 +56,19 @@ def _inline(text: str) -> Markup:
         pieces.append(Markup('<span class="secret" title="Hidden from the party">{}</span>').format(part)
                       if secret else _emphasize(part))
     return Markup("").join(pieces)
+
+
+def mechanics(text: str, field_key: str = "") -> Markup:
+    """A mechanical field (attack, thresholds, phases…): line by line, terms emphasised. A standard attack's
+    name ('Claws: Melee | 1d8+3 phy') is set off like a feature's."""
+    lines = []
+    for line in text.splitlines():
+        m = ATTACK.match(line) if field_key == "standard_attack" else None
+        if m:
+            lines.append(Markup('<span class="feature-name">{}</span> {}').format(m["name"].strip(), _inline(m["rest"])))
+        else:
+            lines.append(_inline(line))
+    return Markup("<br>").join(lines)
 
 
 def render(text: str) -> Markup:

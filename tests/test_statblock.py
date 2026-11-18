@@ -14,10 +14,18 @@ def test_features_get_names_kinds_and_term_emphasis():
     assert '<span class="feature-kind">Fear Feature</span>' in html
     for term, kind in [("1d8+2 physical damage", "dmg"), ("Agility Reaction Roll", "roll"), ("Very Close", "range"),
                        ("Far", "range"), ("Major damage", "dmg"), ("Restrained", "cond"), ("Usable once per scene", "limit"),
-                       ("Consequence Countdown (6)", "count"), ("(Difficulty 13)", "roll"), ("2 HP", "res"), ("Stress", "res")]:
+                       ("Consequence Countdown (6)", "count"), ("(Difficulty 13)", "roll"), ("2 HP", "hp"), ("Stress", "stress"), ("Fear", "fear")]:
         assert f'<span class="t-{kind}">{term}</span>' in html, term
     assert '<p class="feature-q">Which cocoons are still too small to hatch?</p>' in html
     assert '<span class="secret" title="Hidden from the party">She was a Faint Divinity once.</span>' in html
+
+
+def test_mechanical_fields_get_the_same_emphasis():
+    attack = statblock.mechanics("Wing Buffet: Very Close | 1d12+2 phy", "standard_attack")
+    assert '<span class="feature-name">Wing Buffet</span>' in attack
+    assert '<span class="t-range">Very Close</span>' in attack and '<span class="t-dmg">1d12+2 phy</span>' in attack
+    phases = statblock.mechanics("1. The asking.\n2. Spend a Fear: the planks roll.", "phases")
+    assert "<br>" in phases and '<span class="t-fear">Fear</span>' in phases and "feature-name" not in phases
 
 
 def test_a_choice_of_traits_is_one_roll():

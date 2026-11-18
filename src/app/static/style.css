@@ -15,7 +15,7 @@
   --ink: #1c1814; --decoy: 0.62;
   /* shared */
   --ok: #2f7a45; --ok-bg: #e5f1e8; --warn: #8a6100; --warn-bg: #fbf1d6; --danger: #a8322a; --danger-bg: #fbe9e7;
-  --mark: #f3dc8a;
+  --mark: #f3dc8a; --c-hope: #8a6200; --c-fear: #6b3fa0; --c-stress: #a8500c; --c-hp: #b42318;
   --f-inscribe: "Cinzel", "Trajan Pro", Georgia, serif;
   --f-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", Consolas, monospace;
@@ -32,7 +32,7 @@
     --cx-moss: #9db574; --cx-bloom: #8ec3e6; --cx-bloom-fg: #0f140f; --cx-chip: #1f281f;
     --ink: #050403; --decoy: 0.35;
     --ok: #7fc794; --ok-bg: #18291d; --warn: #e3bd5d; --warn-bg: #2d2511; --danger: #f08b80; --danger-bg: #331816;
-    --mark: #6b5a1c;
+    --mark: #6b5a1c; --c-hope: #e8c15a; --c-fear: #c9a6f7; --c-stress: #f0a35e; --c-hp: #f08b80;
     color-scheme: dark;
   }
 }
@@ -44,7 +44,7 @@
   --cx-moss: #9db574; --cx-bloom: #8ec3e6; --cx-bloom-fg: #0f140f; --cx-chip: #1f281f;
   --ink: #050403; --decoy: 0.35;
   --ok: #7fc794; --ok-bg: #18291d; --warn: #e3bd5d; --warn-bg: #2d2511; --danger: #f08b80; --danger-bg: #331816;
-  --mark: #6b5a1c;
+  --mark: #6b5a1c; --c-hope: #e8c15a; --c-fear: #c9a6f7; --c-stress: #f0a35e; --c-hp: #f08b80;
   color-scheme: dark;
 }
 
@@ -343,20 +343,34 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
 .back-to-cast { margin: 10px 0 12px; font-size: 0.9rem; }
 
 /* ── Stat-block features (statblock.py) ───────────────────────────────── */
-.statblock { margin: 6px 0 0; max-width: 74ch; display: flex; flex-direction: column; gap: 7px; }
+.statblock { margin: 6px 0 0; max-width: 74ch; display: flex; flex-direction: column; }
 .statblock p { margin: 0; }
-.feature-name { font-weight: 600; }
-.theme-archive .feature-name { font-family: var(--f-inscribe); letter-spacing: 0.02em; }
-.feature-kind { font: 600 0.68rem var(--f-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 3px; padding: 0 5px; vertical-align: 1px; }
-.feature-q { font-style: italic; color: var(--muted); padding-left: 14px; border-left: 2px solid var(--line); margin-top: -2px; }
-.feature-gap { height: 4px; }
+.statblock .feature { padding: 10px 0 4px; }
+.statblock .feature ~ .feature { border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); }  /* one rule between features */
+.statblock .feature:first-child { padding-top: 2px; }
+.statblock .feature-q { margin: 4px 0 6px; }
+.mechanics { margin: 3px 0 0; }
+.feature-name { font-weight: 600; font-size: 1.06em; }
+.theme-archive .feature-name { font-family: var(--f-inscribe); letter-spacing: 0.03em; color: var(--accent); }
+.feature-kind { font: 600 0.66rem var(--f-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; vertical-align: 2px; margin: 0 2px; }
+.feature-q { font-style: italic; color: var(--muted); padding-left: 14px; border-left: 2px solid var(--line); }
+.feature-gap { height: 0; }
 .t-dmg { font-weight: 600; color: var(--danger); white-space: nowrap; }
-.t-res { font-weight: 600; }
+.t-res, .t-armor { font-weight: 600; }
 .t-roll { font-weight: 600; color: var(--action); }
 .t-range { font-variant: small-caps; letter-spacing: 0.04em; font-weight: 600; }
 .t-cond { font-style: italic; font-weight: 600; }
-.t-limit, .t-count { font: 500 0.88em var(--f-mono); background: var(--chip); border-radius: 3px; padding: 0 4px; white-space: nowrap; }
+.t-count { font: 500 0.88em var(--f-mono); background: var(--chip); border-radius: 3px; padding: 0 4px; white-space: nowrap; }
+/* Limits gate a feature's use: a stamped tag, the first thing a GM should see. */
+.t-limit { font: 700 0.7rem var(--f-ui); letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap; color: var(--accent);
+  border: 1.5px solid var(--accent); border-radius: 3px; padding: 1px 6px; vertical-align: 1px; }
+/* The resources the table spends: each its own pill, so Fear and Stress jump out of a dense block. */
+.t-hope, .t-fear, .t-stress, .t-hp { font-weight: 700; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.t-hope { color: var(--c-hope); background: color-mix(in srgb, var(--c-hope) 16%, transparent); }
+.t-fear { color: var(--c-fear); background: color-mix(in srgb, var(--c-fear) 16%, transparent); }
+.t-stress { color: var(--c-stress); background: color-mix(in srgb, var(--c-stress) 16%, transparent); }
+.t-hp { color: var(--c-hp); background: color-mix(in srgb, var(--c-hp) 14%, transparent); }
 
 /* ── Phones and tablets ───────────────────────────────────────────────── */
 @media (max-width: 860px) {

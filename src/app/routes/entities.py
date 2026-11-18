@@ -35,6 +35,8 @@ def roman(number: int) -> str:
 
 templates.env.filters["roman"] = roman
 templates.env.filters["statblock"] = statblock.render
+templates.env.globals["statblock_mechanics"] = statblock.mechanics
+templates.env.globals["mechanical_fields"] = statblock.MECHANICAL
 templates.env.filters["lore"] = knowledge.render
 templates.env.filters["local_time"] = local_time
 

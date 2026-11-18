@@ -93,6 +93,8 @@
     <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
     {% if f.key == "features" and shown %}
     <dd class="statblock">{{ entity.fields.features|statblock }}</dd>
+    {% elif (etype.key, f.key) in mechanical_fields and shown %}
+    <dd class="mechanics">{{ statblock_mechanics(entity.fields[f.key], f.key) }}</dd>
     {% else %}
     <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
     {% endif %}
