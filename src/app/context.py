@@ -67,6 +67,10 @@ FIELD_HINTS: dict[tuple[str, str], str] = {
     ("encounter", "stakes"): "What is won or lost, for the party and for the others in the scene.",
     ("encounter", "battle_points"): "Budget and spend per the adversary module, like 'Budget 14 · spent 13: "
                                     "2× Standard (4), 1 Leader (3)…'. Empty if the scene has no adversaries.",
+    ("encounter", "spoils"): "What the party can come away with, keyed to how the scene ended and to search rolls "
+                             "('Search the nest (Instinct 12): with Hope, roll 1d12 on Consumables and…'). Use "
+                             "the SRD's Loot and Consumables rolls by rarity and gold in handfuls/bags, per the "
+                             "core module; a unique find only if the scene turns on it. Empty if nothing fits.",
     ("encounter", "phases"): "2-4 beats for how the scene escalates or turns, each with its trigger "
                              "(a countdown, an adversary's HP, Fear spent, a choice).",
     ("environment", "description"): "One evocative line: what the party sees and feels. Player-safe unless barred.",

@@ -3,7 +3,9 @@
 A generation takes a minute or two, so routes start it as a background job and poll. Jobs live in
 memory: this is a one-GM local app, and a job lost to a server restart is simply started again.
 """
+import difflib
 import logging
+import re
 import threading
 import time
 import uuid
@@ -261,14 +263,16 @@ def decisions(output: dict) -> list[dict]:
     """Open threads the draft answers and claims it makes about existing entries, as one checklist.
     Keys are stable per version (t0, t1… for threads, c0, c1… for implications)."""
     state = output.get("decision_state", {})
+    mirror = output.get("decision_mirror", {})
     found = []
     for i, t in enumerate(output.get("open_threads_touched", [])):
         found.append({"key": f"t{i}", "kind": "thread", "entry_id": t["entry_id"], "entry_type": t.get("entry_type"),
-                      "entry": t["entry"], "title": t["thread"], "text": t["proposal"], "state": state.get(f"t{i}")})
+                      "entry": t["entry"], "title": t["thread"], "text": t["proposal"], "state": state.get(f"t{i}"),
+                      "mirrored_from": mirror.get(f"t{i}")})
     for i, c in enumerate(output.get("canon_implications", [])):
         found.append({"key": f"c{i}", "kind": "implication", "entry_id": c["entry_id"],
                       "entry_type": c.get("entry_type"), "entry": c["entry"], "title": "",
-                      "text": c["implication"], "state": state.get(f"c{i}")})
+                      "text": c["implication"], "state": state.get(f"c{i}"), "mirrored_from": mirror.get(f"c{i}")})
     return found
 
 
@@ -300,6 +304,43 @@ def resolve(conn, entity: dict, source: dict, key: str, accept: bool) -> None:
     output = source["output"]
     output.setdefault("decision_state", {})[key] = "accepted" if accept else "rejected"
     db.update_generation_output(conn, source["id"], output)
+    mirror_to_siblings(conn, entity, decision, accept)
+
+
+def same_claim(a: str, b: str) -> bool:
+    """Near-identical wording: most of the same words, or one sentence inside the other. Paraphrases that
+    say it very differently are left alone: settling a different claim by mistake is the worse error."""
+    a, b = " ".join(a.casefold().split()), " ".join(b.casefold().split())
+    if a in b or b in a:
+        return True
+    words_a, words_b = set(re.findall(r"\w{3,}", a)), set(re.findall(r"\w{3,}", b))
+    overlap = len(words_a & words_b) / max(1, len(words_a | words_b))
+    return overlap >= 0.6 or difflib.SequenceMatcher(None, a, b).ratio() >= 0.8
+
+
+def mirror_to_siblings(conn, entity: dict, decision: dict, accept: bool) -> None:
+    """In a composed encounter, the same claim often turns up on two members' drafts. Ruling on it once
+    rules on it everywhere in the cast, marked as settled elsewhere; the note is only ever added once."""
+    composite_id = db.composite_for_entity(conn, entity["id"])
+    if composite_id is None:
+        return
+    for sibling in db.composite_members(conn, composite_id):
+        if sibling["id"] == entity["id"] or sibling["status"] != "draft":
+            continue
+        review = review_state(conn, sibling)
+        source = review["source"] if review else None
+        if source is None:
+            continue
+        output, changed = source["output"], False
+        for other in decisions(output):
+            if (not other["state"] and other["kind"] == decision["kind"] and other["entry_id"] == decision["entry_id"]
+                    and (decision["kind"] != "thread" or other["title"] == decision["title"])
+                    and same_claim(other["text"], decision["text"])):
+                output.setdefault("decision_state", {})[other["key"]] = "accepted" if accept else "rejected"
+                output.setdefault("decision_mirror", {})[other["key"]] = entity["name"]
+                changed = True
+        if changed:
+            db.update_generation_output(conn, source["id"], output)
 
 
 def pending_drafts(conn) -> list[dict]:

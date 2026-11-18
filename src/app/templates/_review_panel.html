@@ -22,7 +22,8 @@
         {% if d.entry_type %}<a href="/{{ d.entry_type }}/{{ d.entry_id }}">{{ d.entry }}</a>{% else %}{{ d.entry }}{% endif %}:
         {% if d.kind == "thread" %}<em>{{ d.title }}</em> → {% endif %}{{ d.text }}
         <span class="decision-actions">
-          {% if d.state == "accepted" %}<span class="badge badge-current">accepted · noted on that entry</span>
+          {% if d.mirrored_from %}<span class="badge {{ 'badge-current' if d.state == 'accepted' else 'badge-edit' }}">{{ d.state }} on {{ d.mirrored_from }}</span>
+          {% elif d.state == "accepted" %}<span class="badge badge-current">accepted · noted on that entry</span>
           {% elif d.state == "rejected" %}<span class="badge badge-edit">rejected</span>
           {% else %}
           <form method="post" action="/{{ etype.key }}/{{ entity.id }}/decisions/{{ d.key }}/accept" class="inline-form"><button type="submit">✓ Accept</button></form>

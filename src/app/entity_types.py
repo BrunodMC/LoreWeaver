@@ -96,6 +96,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("stakes", "Stakes"),
             Field("battle_points", "Battle Points", "text", dm_only=True),
             Field("phases", "Phases", dm_only=True),
+            Field("spoils", "Spoils", dm_only=True),
             Field("notes", "Notes"),
         )),
         EntityType("environment", "Environment", "Environments", party_hidden=True, fields=(

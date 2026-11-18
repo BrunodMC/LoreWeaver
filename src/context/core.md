@@ -115,4 +115,16 @@ Group effects target everything within Very Close of one point, unless stated ot
 - Play to find out what happens.
 - Hold on gently.
 
+## Loot (p. 106–112)
+
+Loot is any item or consumable the party acquires. The SRD has two tables, **Loot** (reusable items) and **Consumables**, each read by rolling d12s for a rarity and adding them together:
+- **Common (1d12 or 2d12):** an abandoned camp, a local shop.
+- **Uncommon (2d12 or 3d12):** limited stock in a shop, a protected place in a camp, part of a job's reward.
+- **Rare (3d12 or 4d12):** under lock and key, the sole reward for a job, a powerful NPC's possessions.
+- **Legendary (4d12 or 5d12):** one of a kind, the reward for an incredibly dangerous job, a powerful adversary's most guarded treasure.
+
+Gold is abstract: **handfuls, bags and chests** (10 handfuls to a bag, 10 bags to a chest).
+
+When proposing loot, point at these rolls ("roll 1d12 on Consumables") instead of inventing items, and match the rarity to the danger and to how the scene was won. Invent a unique find only when the story turns on it; it then deserves its own Item entry.
+
 Key practices: keep the story moving after every roll; cut to the action; tell players what their characters would know; ground the world in motive (NPCs act from goals and desires); reframe rather than reject. Pitfalls: undermining the heroes, letting scenes drag, insisting on a single solution, overplanning, hoarding Fear.
