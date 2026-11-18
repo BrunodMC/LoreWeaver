@@ -32,6 +32,11 @@ draft new entries grounded in everything already written.
   files itself to a session entry dated that day; otherwise it waits under *Unfiled reveals* in the
   inbox, to file once the session's entry is written. A session's page lists what was revealed.
 
+- **Two looks.** The DM works in the *Havenite Archive*: marble, brass and verdigris, each entry on
+  its own cracked slab. Party view is the *Overgrown Codex*: a printed field-book with ink-wash
+  portraits. Both have day and night palettes (the lamp button). A secret written `||~like this||`
+  is a **tease**: players see that line struck out in ink over decoy writing, never the words.
+
 Nothing the AI writes becomes canon, or reaches the players, without the DM choosing it.
 
 ## Setup

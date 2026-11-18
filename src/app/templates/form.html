@@ -21,7 +21,8 @@
   </label>
   {% endif %}
 
-  <p class="hint">Wrap anything the party doesn't know in double pipes: <code>||The Reaping Eye was stolen.||</code></p>
+  <p class="hint">Wrap anything the party doesn't know in double pipes: <code>||Owes the guild a fortune.||</code>
+    Start it with a tilde to tease it, <code>||~Owes the guild a fortune.||</code>: players then see that line struck out in ink, never the words.</p>
 
   {% for f in etype.fields %}
   {% set current = values.fields.get(f.key, "") %}
