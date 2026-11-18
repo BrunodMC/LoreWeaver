@@ -1,0 +1,18 @@
+{# A brass seal stamped with the entry type's glyph. #}
+{% set glyphs = {
+  "npc": "M5 4h14v7c0 4.4-3.1 8-7 9-3.9-1-7-4.6-7-9z M8.5 10.5c.8-.7 1.7-.7 2.5 0 M13 10.5c.8-.7 1.7-.7 2.5 0 M9.5 15c1.5 1 3.5 1 5 0",
+  "pc": "M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z",
+  "location": "M7 21V9l5-5 5 5v12 M10 21v-5h4v5 M4 21h16 M11 10h2",
+  "faction": "M6 3v18 M6 4h11l-3 4 3 4H6",
+  "arc": "M12 12.5a1.5 1.5 0 1 1 1.5-1.5 3 3 0 1 1-4.5 2.6 4.5 4.5 0 1 1 7.5 3.4 6 6 0 1 1 3-6.5",
+  "item": "M6 4h12l3 5-9 11L3 9z M3 9h18 M9 4l3 5 3-5",
+  "adversary": "M6 4c2.5 5 2.5 11 0 16 M11.5 3c2.5 6 2.5 12 0 18 M17 4c2.5 5 2.5 11 0 16",
+  "environment": "M12 21v-5 M12 3l6 7h-3.5l4.5 6H5l4.5-6H6z",
+  "encounter": "M4 4l12 12 M20 4L8 16 M13.5 18.5l2 2 M10.5 18.5l-2 2 M15 15l4 4 M9 15l-4 4",
+  "session": "M7 3h10 M7 21h10 M8 3c0 5 8 6 8 9s-8 4-8 9 M16 3c0 5-8 6-8 9s8 4 8 9",
+} %}
+<div class="seal" title="{{ etype.label }}">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="{{ glyphs.get(etype.key, 'M12 4v16 M4 12h16') }}"/>
+  </svg>
+</div>

@@ -15,6 +15,7 @@
 <script src="/static/htmx.min.js" defer></script>
 </head>
 <body class="{{ 'theme-codex party-view' if party_view else 'theme-archive' }}">
+{% if party_view %}{{ ornament.INK_DEFS }}{% endif %}
 {% set here = request.url.path ~ ("?" ~ request.url.query if request.url.query else "") %}
 <header class="site-header">
   {% if not party_view %}

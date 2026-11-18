@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import audit, composite, db, generation, knowledge, search as search_mod
+from .. import audit, composite, db, generation, knowledge, ornament, search as search_mod
 from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -20,6 +20,20 @@ def local_time(utc_value: str) -> str:
 templates = Jinja2Templates(directory=Path(__file__).resolve().parents[1] / "templates")
 templates.env.globals["entity_types"] = ENTITY_TYPES
 templates.env.globals["nav_groups"] = NAV_GROUPS
+templates.env.globals["ornament"] = ornament
+
+
+def roman(number: int) -> str:
+    """Catalogue numbers, the way Haven carves them: 52 → LII."""
+    out = ""
+    for value, numeral in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+                           (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")):
+        while number >= value:
+            out, number = out + numeral, number - value
+    return out or "N"
+
+
+templates.env.filters["roman"] = roman
 templates.env.filters["lore"] = knowledge.render
 templates.env.filters["local_time"] = local_time
 

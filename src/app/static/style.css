@@ -283,6 +283,56 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
 .bp-bar { width: 100%; height: 14px; accent-color: var(--action); }
 .bp-lines { list-style: none; padding: 0; margin: 6px 0; font-variant-numeric: tabular-nums; }
 
+/* ── The DM's entry: a catalogued marble slab ─────────────────────────── */
+.sheet { position: relative; isolation: isolate; }
+.sheet > *:not(.slab) { position: relative; }
+.slab { position: absolute; z-index: -1; top: -28px; left: -28px; right: -28px; width: calc(100% + 56px); height: min(100%, 900px);
+  pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent); }
+.slab .stain-flood { flood-color: var(--ar-stain); }
+.slab .vein-flood { flood-color: var(--ar-vein); }
+.slab .crack-cut path { fill: var(--ar-crack); opacity: 0.8; }
+.slab .crack-lip path { fill: var(--ar-crack-lip); opacity: 0.9; }
+.plate { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.plate h1 { margin: 2px 0 0; padding-bottom: 5px; border-bottom: 3px double var(--accent); display: inline-block; }
+.seal { flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: var(--accent);
+  border: 1.5px solid var(--accent); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 18%, var(--panel)), var(--panel) 70%); }
+.catalogue { margin: 0; font: 500 0.76rem var(--f-mono); color: var(--muted); letter-spacing: 0.04em; }
+.catalogue a { color: var(--muted); }
+.catalogue b { color: var(--accent); font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
+.role { margin: 6px 0 0; color: var(--muted); }
+.tease-dm { background: color-mix(in srgb, var(--secret-bg) 70%, var(--ink) 12%); }
+.tease-mark { display: inline-block; width: 0.9em; height: 0.55em; margin-right: 4px; vertical-align: 0.05em; background: var(--secret-fg); opacity: 0.75;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M1 7 L5 2 L6 8 L10 2 L11 8 L15 2 L16 8 L19 3' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'%3E%3Cpath d='M1 7 L5 2 L6 8 L10 2 L11 8 L15 2 L16 8 L19 3' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ── The party's entry: a leaf of the field-book ──────────────────────── */
+.leaf { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 30px 34px 34px;
+  box-shadow: 0 1px 0 var(--line), 0 18px 40px -28px rgb(0 0 0 / 0.55); }
+.leaf.with-portrait { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px 34px; align-items: start; }
+.leaf-text { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.leaf h1 { margin: 2px 0 0; }
+.leaf h1::first-letter { color: var(--accent); }
+.kicker { margin: 0; font-family: var(--f-fell-sc); letter-spacing: 0.06em; }
+.kicker a { color: var(--accent); text-decoration: none; }
+.leaf .role { font-style: italic; margin-top: 2px; }
+.portrait { margin: 0; border: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.portrait .wash { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; }
+.wash .paper { fill: var(--bg); }
+.wash .ink { fill: var(--fg); }
+.wash .moss { fill: var(--accent); }
+.wash .stroke { fill: none; stroke: var(--fg); stroke-width: 1.2; opacity: 0.55; }
+.portrait figcaption { font: italic 0.82rem var(--f-fell); color: var(--muted); text-align: center; }
+.leaf .links { margin-top: 10px; }
+.theme-codex .link-list .relation { font-style: italic; }
+
+/* ── Teases: decoy writing with ink drawn over it (ornament.py) ───────── */
+.tease { display: inline; }
+.tz { position: relative; display: inline-block; white-space: nowrap; margin-right: 0.28em; }
+.tz:first-child { margin-left: 0.35em; }  /* the ink overshoots; keep it off the word before */
+.tz .decoy { color: var(--fg); opacity: var(--decoy); }
+.tz svg { position: absolute; left: -0.3em; top: -0.35em; width: calc(100% + 0.6em); height: calc(100% + 0.7em); overflow: visible; pointer-events: none; fill: var(--ink); }
+
 /* ── Phones and tablets ───────────────────────────────────────────────── */
 @media (max-width: 860px) {
   .pool-layout { grid-template-columns: 1fr; }
@@ -298,4 +348,9 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
   .theme-codex h1 { font-size: 2rem; }
   main { padding-block: 20px 48px; }
   .entities thead th:nth-child(4), .entities td:nth-child(4) { display: none; }
+  .leaf, .leaf.with-portrait { grid-template-columns: 1fr; padding: 22px 18px; }
+  .portrait { max-width: 230px; }
+  .plate { align-items: flex-start; }
+  .seal { width: 40px; height: 40px; }
+  .slab { left: -20px; right: -20px; width: calc(100% + 40px); }
 }

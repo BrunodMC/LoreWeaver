@@ -1,66 +1,127 @@
 {% extends "base.html" %}
 {% block title %}{{ entity.name }} · LoreWeaver{% endblock %}
+{% set portrait_types = ("npc", "pc", "adversary") %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <p class="muted"><a href="/{{ etype.key }}">{{ etype.plural }}</a></p>
-    <h1>{{ entity.name }}</h1>
-  </div>
-  {% if not party_view %}
-  <div class="page-actions">
-    {% if entity.status == "canon" or (entity.status == "draft" and entity.ai_context) %}
-    <a class="button" href="/generate?anchor={{ entity.id }}" title="Generate a new entry tied to this one">✦ Spin off</a>
-    {% endif %}
-    {% if has_history and not review %}
-    <a class="button" href="/{{ etype.key }}/{{ entity.id }}/history" title="Every AI attempt, your edits, and Claude's notes">Drafting history</a>
-    {% endif %}
-    <a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>
-  </div>
+{% if party_view %}
+{# ── The players' codex: a leaf of the field-book ── #}
+{% set role = entity.fields.get("ancestry_role", "")|lore(true, "", entity.id ~ ":ancestry_role") %}
+<article class="leaf{% if etype.key in portrait_types %} with-portrait{% endif %}">
+  {% if etype.key in portrait_types %}
+  <figure class="portrait">
+    {{ ornament.portrait(etype.key, entity.id) }}
+    <figcaption>{{ entity.name }}, as the party remembers {{ "it" if etype.key == "adversary" else "them" }}</figcaption>
+  </figure>
   {% endif %}
-</div>
+  <div class="leaf-text">
+    <div>
+      <p class="kicker"><a href="/{{ etype.key }}">{{ etype.plural }}</a></p>
+      <h1>{{ entity.name }}</h1>
+      {% if role %}<p class="role">{{ role }}</p>{% endif %}
+    </div>
+    <dl class="fields">
+      {% for f in etype.fields if not f.dm_only and f.key != "ancestry_role" %}
+      {% set shown = entity.fields.get(f.key, "")|lore(true, "", entity.id ~ ":" ~ f.key) %}
+      {% if shown %}
+      <dt>{{ f.label }}</dt>
+      <dd class="field-value">{{ shown }}</dd>
+      {% endif %}
+      {% endfor %}
+    </dl>
+    {% include "_links_section.html" %}
+  </div>
+</article>
 
-{% if not party_view %}{% include "_status_actions.html" %}{% endif %}
-{% if review %}{% include "_review_panel.html" %}{% endif %}
-{% if cast %}{% include "_cast_panel.html" %}{% endif %}
-{% if secrecy %}{% include "_secrecy_panel.html" %}{% endif %}
+{% else %}
+{# ── The DM's archive: a catalogued slab of marble ── #}
+<article class="sheet">
+  <svg class="slab" viewBox="0 0 {{ ornament.CRACK_W }} {{ ornament.CRACK_H }}" preserveAspectRatio="xMidYMin slice" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="slab-stain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0045" numOctaves="3" seed="{{ entity.id % 97 }}" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.75 0 0 0 -0.3" result="a"/>
+        <feFlood class="stain-flood" result="c"/>
+        <feComposite in="c" in2="a" operator="in"/>
+      </filter>
+      <filter id="slab-vein" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.003 0.017" numOctaves="4" seed="{{ (entity.id * 7) % 89 }}" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="r"/>
+        <feComponentTransfer in="r" result="v"><feFuncA type="table" tableValues="0 0 0 0 0 0.75 0.1 0 0 0 0 0 0.4 0 0 0 0"/></feComponentTransfer>
+        <feFlood class="vein-flood" result="c"/>
+        <feComposite in="c" in2="v" operator="in"/>
+      </filter>
+    </defs>
+    <rect width="{{ ornament.CRACK_W }}" height="{{ ornament.CRACK_H }}" filter="url(#slab-stain)"/>
+    <g transform="rotate(-24 500 350)"><rect x="-500" y="-500" width="2000" height="1700" filter="url(#slab-vein)" opacity="0.8"/></g>
+    {{ ornament.cracks(etype.key, entity.id) }}
+  </svg>
 
-<dl class="fields">
-  {% for f in etype.fields if not (party_view and f.dm_only) %}
-  {% set reveal_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/" ~ f.key if can_reveal and not f.dm_only else "" %}
-  {% set shown = entity.fields.get(f.key, "")|lore(party_view, reveal_url) %}
-  <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
-  <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
-  {% endfor %}
-</dl>
+  <div class="page-head">
+    <div class="plate">
+      {% include "_seal.html" %}
+      <div>
+        <p class="catalogue"><a href="/{{ etype.key }}">{{ etype.plural }}</a> · <b>Cat. {{ etype.label }} · {{ entity.id|roman }}</b></p>
+        <h1>{{ entity.name }}</h1>
+        {% if entity.fields.ancestry_role %}
+        {% set role_reveal = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/ancestry_role" if can_reveal else "" %}
+        <p class="role">{{ entity.fields.ancestry_role|lore(false, role_reveal) }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="page-actions">
+      {% if entity.status == "canon" or (entity.status == "draft" and entity.ai_context) %}
+      <a class="button" href="/generate?anchor={{ entity.id }}" title="Generate a new entry tied to this one">✦ Spin off</a>
+      {% endif %}
+      {% if has_history and not review %}
+      <a class="button" href="/{{ etype.key }}/{{ entity.id }}/history" title="Every AI attempt, your edits, and Claude's notes">Drafting history</a>
+      {% endif %}
+      <a class="button" href="/{{ etype.key }}/{{ entity.id }}/edit">Edit</a>
+    </div>
+  </div>
 
-{% if extra_fields and not party_view %}
-<section class="extra-fields">
-  <h2>Other fields</h2>
-  <p class="muted">Kept from earlier versions of this entity type. Not editable in the form.</p>
+  {% include "_status_actions.html" %}
+  {% if review %}{% include "_review_panel.html" %}{% endif %}
+  {% if cast %}{% include "_cast_panel.html" %}{% endif %}
+  {% if secrecy %}{% include "_secrecy_panel.html" %}{% endif %}
+
   <dl class="fields">
-    {% for key, value in extra_fields.items() %}
-    <dt>{{ key }}</dt><dd class="field-value">{{ value|lore }}</dd>
+    {% for f in etype.fields if f.key != "ancestry_role" or not entity.fields.ancestry_role %}
+    {% set reveal_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/" ~ f.key if can_reveal and not f.dm_only else "" %}
+    {% set shown = entity.fields.get(f.key, "")|lore(false, reveal_url) %}
+    <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
+    <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
     {% endfor %}
   </dl>
-</section>
+
+  {% if extra_fields %}
+  <section class="extra-fields">
+    <h2>Other fields</h2>
+    <p class="muted">Kept from earlier versions of this entity type. Not editable in the form.</p>
+    <dl class="fields">
+      {% for key, value in extra_fields.items() %}
+      <dt>{{ key }}</dt><dd class="field-value">{{ value|lore }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+
+  {% if session_reveals is not none %}
+  <details class="ai-notes session-reveals">
+    <summary>Reveal log: material for the summary ({{ session_reveals|length }}) <span class="dm-tag">DM only</span></summary>
+    <p class="hint">What the party learned during this session, as raw notes for writing it up. Players never see this list.</p>
+    {% if session_reveals %}
+    <ul class="link-list">
+      {% for r in session_reveals %}
+      <li>{% if r.entity_type %}<a href="/{{ r.entity_type }}/{{ r.entity_id }}"><strong>{{ r.entity_name }}</strong></a>{% else %}<strong>{{ r.entity_name }}</strong>{% endif %}{% if r.field %} · {{ r.field }}: {{ r.text }}{% else %} <span class="hint">(the entry itself)</span>{% endif %}
+        <span class="hint">{{ r.created_at|local_time }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Nothing filed to this session yet. Unfiled reveals wait in <a href="/drafts">Drafts to review</a>.</p>{% endif %}
+  </details>
+  {% endif %}
+
+  {% include "_links_section.html" %}
+
+  <p class="muted timestamps">Created {{ entity.created_at|local_time }} · Updated {{ entity.updated_at|local_time }}</p>
+</article>
 {% endif %}
-
-{% if session_reveals is not none %}
-<details class="ai-notes session-reveals">
-  <summary>Reveal log: material for the summary ({{ session_reveals|length }}) <span class="dm-tag">DM only</span></summary>
-  <p class="hint">What the party learned during this session, as raw notes for writing it up. Players never see this list.</p>
-  {% if session_reveals %}
-  <ul class="link-list">
-    {% for r in session_reveals %}
-    <li>{% if r.entity_type %}<a href="/{{ r.entity_type }}/{{ r.entity_id }}"><strong>{{ r.entity_name }}</strong></a>{% else %}<strong>{{ r.entity_name }}</strong>{% endif %}{% if r.field %} · {{ r.field }}: {{ r.text }}{% else %} <span class="hint">(the entry itself)</span>{% endif %}
-      <span class="hint">{{ r.created_at|local_time }}</span></li>
-    {% endfor %}
-  </ul>
-  {% else %}<p class="muted">Nothing filed to this session yet. Unfiled reveals wait in <a href="/drafts">Drafts to review</a>.</p>{% endif %}
-</details>
-{% endif %}
-
-{% include "_links_section.html" %}
-
-{% if not party_view %}<p class="muted timestamps">Created {{ entity.created_at|local_time }} · Updated {{ entity.updated_at|local_time }}</p>{% endif %}
 {% endblock %}
