@@ -43,6 +43,6 @@ def test_cracks_and_portraits_are_seeded_and_sound():
     assert ornament.portrait("npc", 9) != ornament.portrait("npc", 10)
     for seed in range(150):  # every seed draws without error or NaN
         for mark in (ornament.cracks("npc", seed), ornament.portrait("npc", seed), ornament.tease(80, seed, "f", 1),
-                     ornament.lichen("npc", seed), ornament.foxing("npc", seed)):
+                     ornament.lichen("npc", seed), ornament.foxing("npc", seed), ornament.rips("npc", seed)):
             drawing = re.sub(r'<span class="decoy">[^<]*</span>', "", mark)  # decoy words may spell "nan"
             assert "nan" not in drawing.lower()

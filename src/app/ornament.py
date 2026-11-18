@@ -347,9 +347,48 @@ def foxing(*seed) -> Markup:
                   '<stop offset="1" class="fox-edge"/></radialGradient>'
                   '<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" '
                   'baseFrequency="0.9" numOctaves="3" seed="7" result="n"/><feColorMatrix in="n" type="matrix" '
-                  'values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.09 -0.02"/></filter></defs>'
+                  'values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.16 -0.03"/></filter>'
+                  # long faint fibres running through the sheet, and the uneven tone of old paper
+                  '<filter id="fibres" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" '
+                  'baseFrequency="0.006 0.12" numOctaves="2" seed="13" result="n"/><feColorMatrix in="n" type="matrix" '
+                  'values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.5 -1.18"/></filter>'
+                  '<filter id="tone" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" '
+                  'baseFrequency="0.005" numOctaves="3" seed="29" result="n"/><feColorMatrix in="n" type="matrix" '
+                  'values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.3 -0.12"/></filter></defs>'
+                  '<rect class="grain" width="1000" height="1000" filter="url(#tone)"/>'
+                  '<rect class="grain" width="1000" height="1000" filter="url(#fibres)"/>'
                   '<rect class="grain" width="1000" height="1000" filter="url(#grain)"/>'
                   + "".join(spots) + "</svg>")
+
+
+RIP_W, RIP_H = 34.0, 16.0
+RIP_EDGES = ("top", "bottom", "left", "right")
+
+
+def rips(*seed) -> Markup:
+    """A few small tears along a leaf's edges. Each is a jagged notch (drawn for the top edge; CSS turns
+    it to face its own edge), filled with the page's background so the paper reads as missing there,
+    with a pale fringe of torn fibres along the tear."""
+    r = rng("rips", *seed)
+    out = []
+    for _ in range(1 + r.randrange(3)):
+        edge = r.choice(RIP_EDGES)
+        at = 8 + r.random() * 84  # percent along that edge, clear of the corners
+        w = RIP_W * (0.6 + r.random() * 0.8)
+        depth = RIP_H * (0.45 + r.random() * 0.55)
+        steps = 7 + r.randrange(6)
+        pts = [(0.0, 0.0)]
+        for k in range(1, steps):  # a ragged V: deepest near the middle, jagged all along
+            x = w * k / steps + (r.random() - 0.5) * w / steps * 0.8
+            reach = depth * math.sin(math.pi * k / steps) ** 0.8
+            pts.append((x, max(0.5, reach * (0.55 + r.random() * 0.45))))
+        pts.append((w, 0.0))
+        tear = " L".join(f"{_f(x)} {_f(y)}" for x, y in pts)
+        fringe = " L".join(f"{_f(x)} {_f(y + 0.9)}" for x, y in pts[1:-1])
+        out.append(f'<svg class="rip rip-{edge}" style="--at: {at:.1f}%" width="{_f(w)}" height="{_f(depth + 2)}" '
+                   f'viewBox="0 0 {_f(w)} {_f(depth + 2)}" aria-hidden="true" focusable="false">'
+                   f'<path class="rip-fringe" d="M{fringe}"/><path class="rip-gap" d="M{tear} Z"/></svg>')
+    return Markup("".join(out))
 
 
 # ── An ink-wash portrait, until there's a real one ─────────────────────────
