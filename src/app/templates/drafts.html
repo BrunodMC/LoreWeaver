@@ -12,6 +12,32 @@
   </div>
 </div>
 
+{% if unfiled %}
+<h2>Unfiled reveals</h2>
+<p class="muted">What the party learned with no session entry dated that day to file it under. File them to the session they happened in{% if not sessions %}: there are no session entries yet{% endif %}.</p>
+<form method="post" action="/reveals/file" class="entity-form">
+  <ul class="inbox">
+    {% for r in unfiled %}
+    <li class="inbox-item">
+      <label class="checkbox"><input type="checkbox" name="reveal" value="{{ r.id }}" checked>
+        {% if r.entity_type %}<a href="/{{ r.entity_type }}/{{ r.entity_id }}">{{ r.entity_name }}</a>{% else %}{{ r.entity_name }}{% endif %}{% if r.field %} · {{ r.field }}{% endif %}</label>
+      <span class="hint">{{ r.created_at|local_time }}</span>
+      {% if r.text %}<p class="field-value">{{ r.text }}</p>{% else %}<p class="hint">The entry itself was revealed.</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="form-actions">
+    {% if sessions %}
+    <select name="session_id" aria-label="Session">
+      {% for s in sessions %}<option value="{{ s.id }}">{{ s.name }}{% if s.fields.session_date %} ({{ s.fields.session_date }}){% endif %}</option>{% endfor %}
+    </select>
+    <button type="submit" class="primary">File to this session</button>
+    {% endif %}
+    <a class="button" href="/session/new" target="_blank">New session entry</a>
+  </div>
+</form>
+{% endif %}
+
 {% if composing %}
 <h2>Encounters being composed</h2>
 <ul class="inbox">

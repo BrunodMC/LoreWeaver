@@ -38,7 +38,22 @@ async def inbox(request: Request, conn: Conn):
     return render(request, "drafts.html", {
         "pending": group_by_encounter(conn, generation.pending_drafts(conn)),
         "running": generation.running_jobs(), "composing": composite.workspaces(conn),
+        "unfiled": db.reveals(conn, None), "sessions": db.sessions_newest_first(conn),
     })
+
+
+@router.post("/reveals/file")
+async def file_reveals(request: Request, conn: Conn):
+    """File ticked reveals to a session entry (often one written after the game)."""
+    dm_only(request)
+    form = await request.form()
+    try:
+        session_id = int(form.get("session_id", ""))
+        ids = [int(v) for v in form.getlist("reveal")]
+        db.file_reveals(conn, ids, session_id)
+    except ValueError:
+        raise HTTPException(422, "Pick a session entry and at least one reveal") from None
+    return RedirectResponse("/drafts", status_code=303)
 
 
 def group_by_encounter(conn, pending: list[dict]) -> list[dict]:

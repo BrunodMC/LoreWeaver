@@ -25,7 +25,8 @@
 
 <dl class="fields">
   {% for f in etype.fields if not (party_view and f.dm_only) %}
-  {% set shown = entity.fields.get(f.key, "")|lore(party_view) %}
+  {% set reveal_url = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/" ~ f.key if can_reveal and not f.dm_only else "" %}
+  {% set shown = entity.fields.get(f.key, "")|lore(party_view, reveal_url) %}
   <dt>{{ f.label }}{% if f.dm_only %} <span class="dm-tag">DM only</span>{% endif %}</dt>
   <dd class="field-value">{% if shown %}{{ shown }}{% else %}<span class="muted">—</span>{% endif %}</dd>
   {% endfor %}
@@ -40,6 +41,20 @@
     <dt>{{ key }}</dt><dd class="field-value">{{ value|lore }}</dd>
     {% endfor %}
   </dl>
+</section>
+{% endif %}
+
+{% if session_reveals is not none %}
+<section class="session-reveals">
+  <h2>Revealed this session</h2>
+  {% if session_reveals %}
+  <ul class="link-list">
+    {% for r in session_reveals %}
+    <li>{% if r.entity_type %}<a href="/{{ r.entity_type }}/{{ r.entity_id }}"><strong>{{ r.entity_name }}</strong></a>{% else %}<strong>{{ r.entity_name }}</strong>{% endif %}{% if r.field %} · {{ r.field }}: {{ r.text }}{% else %} <span class="hint">(the entry itself)</span>{% endif %}
+      <span class="hint">{{ r.created_at|local_time }}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Nothing filed to this session yet. Unfiled reveals wait in <a href="/drafts">Drafts to review</a>.</p>{% endif %}
 </section>
 {% endif %}
 

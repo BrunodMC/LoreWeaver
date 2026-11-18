@@ -216,6 +216,8 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "review": review,
         "reviewing": review is not None,
         "cast": composite.cast_review(conn, entity) if not party_view and entity["type"] == "encounter" else None,
+        "can_reveal": not party_view and db.visible_to_party(entity),
+        "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),
         "statuses": STATUSES,
@@ -263,9 +265,37 @@ async def change_status(request: Request, type_key: str, entity_id: int, conn: C
 @router.post("/{type_key}/{entity_id}/known", response_class=HTMLResponse)
 async def change_known(request: Request, type_key: str, entity_id: int, conn: Conn):
     etype = entity_type_or_404(type_key)
-    entity_or_404(conn, type_key, entity_id)
-    db.set_known(conn, entity_id, (await request.form()).get("known") == "1")
+    entity = entity_or_404(conn, type_key, entity_id)
+    known = (await request.form()).get("known") == "1"
+    db.set_known(conn, entity_id, known)
+    if known and not entity["known_to_party"]:
+        db.record_reveal(conn, entity)  # the whole entry, logged for the session
     return render_status(request, conn, etype, entity_id)
+
+
+@router.post("/{type_key}/{entity_id}/reveal/{field_key}/{index}")
+async def reveal_passage(request: Request, type_key: str, entity_id: int, field_key: str, index: int, conn: Conn):
+    """Reveal one ||secret|| passage of an entry the party already knows: its bars go, and the reveal
+    is logged for the session."""
+    if is_party_view(request):
+        raise HTTPException(404, "Not available in party view")
+    etype = entity_type_or_404(type_key)
+    entity = entity_or_404(conn, type_key, entity_id)
+    field = next((f for f in etype.fields if f.key == field_key), None)
+    if field is None or field.dm_only:
+        raise HTTPException(404, "No such revealable field")
+    if not db.visible_to_party(entity):
+        raise HTTPException(409, "Reveal the entry itself first: the party can't see any of it yet")
+    try:
+        text, passage = knowledge.reveal_passage(entity["fields"].get(field_key, ""), index,
+                                                 str((await request.form()).get("tag", "")))
+    except knowledge.PassageGone as exc:
+        raise HTTPException(409, str(exc)) from None
+    db.update_entity(conn, entity_id, entity["name"], dict(entity["fields"], **{field_key: text}))
+    db.record_reveal(conn, entity, field.label, passage)
+    if request.headers.get("HX-Request"):
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
 @router.post("/{type_key}/{entity_id}/ai-context", response_class=HTMLResponse)

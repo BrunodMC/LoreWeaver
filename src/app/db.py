@@ -413,3 +413,44 @@ def composite_members(conn: sqlite3.Connection, composite_id: int) -> list[dict]
     rows = conn.execute("SELECT * FROM entities WHERE id IN (SELECT DISTINCT entity_id FROM generations "
                         "WHERE composite_id = ? AND entity_id IS NOT NULL) ORDER BY id", (composite_id,)).fetchall()
     return [entity_from_row(r) for r in rows]
+
+
+# ── Reveals (what the party learned, filed by session) ─────────────────────
+
+def todays_session(conn: sqlite3.Connection) -> int | None:
+    """A session entry dated today (local time), if one exists: a reveal made now belongs to it."""
+    rows = conn.execute("SELECT id, fields FROM entities WHERE type = 'session' AND status != 'archived' "
+                        "ORDER BY id DESC").fetchall()
+    today = datetime.now().strftime("%Y-%m-%d")
+    return next((r["id"] for r in rows if json.loads(r["fields"]).get("session_date") == today), None)
+
+
+def record_reveal(conn: sqlite3.Connection, entity: dict, field_label: str = "", text: str = "") -> int:
+    session = todays_session(conn)
+    with conn:
+        cur = conn.execute("INSERT INTO reveals (entity_id, entity_name, field, text, session_id) VALUES (?, ?, ?, ?, ?)",
+                           (entity["id"], entity["name"], field_label, text.strip(), session))
+    return cur.lastrowid
+
+
+def reveals(conn: sqlite3.Connection, session_id: int | None) -> list[dict]:
+    """A session's reveals, oldest first; session_id None lists the unfiled ones."""
+    where = "r.session_id IS NULL" if session_id is None else "r.session_id = ?"
+    args = () if session_id is None else (session_id,)
+    rows = conn.execute(f"SELECT r.*, e.type AS entity_type FROM reveals r LEFT JOIN entities e ON e.id = r.entity_id "
+                        f"WHERE {where} ORDER BY r.id", args).fetchall()
+    return [dict(r) for r in rows]
+
+
+def file_reveals(conn: sqlite3.Connection, reveal_ids: list[int], session_id: int) -> None:
+    target = conn.execute("SELECT 1 FROM entities WHERE id = ? AND type = 'session'", (session_id,)).fetchone()
+    if target is None:
+        raise ValueError(f"Not a session entry: {session_id}")
+    with conn:
+        conn.executemany("UPDATE reveals SET session_id = ? WHERE id = ?", [(session_id, r) for r in reveal_ids])
+
+
+def sessions_newest_first(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute("SELECT * FROM entities WHERE type = 'session' AND status != 'archived'").fetchall()
+    sessions = [entity_from_row(r) for r in rows]
+    return sorted(sessions, key=lambda s: (s["fields"].get("session_date", ""), s["id"]), reverse=True)
