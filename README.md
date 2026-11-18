@@ -11,6 +11,13 @@ draft new entries grounded in everything already written.
   one must link to). Claude reads the rules, the campaign frame and the whole bible, and drafts an
   entry that lands as a draft, unknown to the party. *✦ Spin off* on any entry opens the form
   already anchored to it.
+- **Compose encounters.** *Compose an encounter* builds a scene and its cast in checked steps:
+  three distinct premises to edit and pick from (or the brief as the premise), then a pool of
+  candidate adversaries, environments, NPCs and places to tick and edit, with a live **Battle
+  Point** meter and existing entries castable straight from the bible. *Draft these* writes the
+  encounter sheet first, then every new member in parallel, each following the sheet. The
+  encounter's page reviews the cast as one: *Promote all* (blocked while any draft has open
+  decisions) or *Discard all*.
 - **Review before anything is canon.** An AI draft shows a review panel: proposed links to tick,
   a warning when it proposes answers to open questions, *Regenerate with notes* (fields the notes
   don't touch are kept exactly as they are), *Discard*, and a version history you can step through
@@ -77,5 +84,6 @@ Tests run against a temporary database and a scripted fake model: no test can ca
 | `src/app/llm.py` | The one door to the model (`claude -p` backend, fake backend for tests) |
 | `src/app/context.py` | What the model sees (prompt, bible rendering, output schema) and the checks on its answers |
 | `src/app/generation.py` | Running generations as background jobs, versions, promote and restore |
-| `src/app/routes/` | Pages: browsing and editing, generation, review |
+| `src/app/composite.py`, `battle.py` | Composite encounters (spines, cast pool, sheet, members) and Battle Point arithmetic |
+| `src/app/routes/` | Pages: browsing and editing, generation, encounters, review |
 | `src/context/` | Rules and campaign-frame modules fed to the model |
