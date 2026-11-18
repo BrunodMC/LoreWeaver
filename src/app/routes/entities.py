@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import composite, db, generation, knowledge, search as search_mod
+from .. import audit, composite, db, generation, knowledge, search as search_mod
 from ..entity_types import ENTITY_TYPES, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -200,6 +200,17 @@ async def create(request: Request, type_key: str, conn: Conn):
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
+def secrecy_state(conn: sqlite3.Connection, entity_id: int, just_applied: str | None) -> dict:
+    """The secrecy check's panel: a check running, an open one to rule on, or what couldn't be hidden."""
+    failed = []
+    if just_applied and just_applied.isdigit():
+        settled = audit.get(conn, int(just_applied))
+        if settled and settled["entity_id"] == entity_id:
+            failed = [f for f in settled["findings"] if settled["state"].get(f["key"]) == "failed"]
+    return {"task": audit.task_for("secrecy", entity_id), "audit": audit.latest_open(conn, "secrecy", entity_id),
+            "failed": failed}
+
+
 @router.get("/{type_key}/{entity_id}", response_class=HTMLResponse)
 async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
     etype = entity_type_or_404(type_key)
@@ -217,6 +228,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "reviewing": review is not None,
         "cast": composite.cast_review(conn, entity) if not party_view and entity["type"] == "encounter" else None,
         "can_reveal": not party_view and db.visible_to_party(entity),
+        "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),

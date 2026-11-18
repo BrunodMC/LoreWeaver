@@ -51,6 +51,25 @@ def reveal_passage(text: str, index: int, tag: str) -> tuple[str, str]:
     return out, passages[index]
 
 
+class CannotBar(ValueError):
+    """The quote isn't wholly inside the visible text, so it can't be hidden automatically."""
+
+
+def bar_quote(text: str, quote: str) -> str:
+    """Hide the first visible occurrence of quote by wrapping it in ||bars||."""
+    quote = quote.strip()
+    if not quote or MARKER in quote:
+        raise CannotBar("Nothing to hide.")
+    parts = text.split(MARKER)
+    public_parts = len(parts) if len(parts) % 2 == 1 else len(parts) - 1  # an unclosed tail is secret
+    for i in range(0, public_parts, 2):
+        at = parts[i].find(quote)
+        if at >= 0:
+            parts[i] = parts[i][:at] + MARKER + quote + MARKER + parts[i][at + len(quote):]
+            return MARKER.join(parts)
+    raise CannotBar(f"Couldn't find “{quote}” in the visible text: hide it by hand with Edit.")
+
+
 def render(text: str, party_view: bool = False, reveal_url: str = "") -> Markup:
     """reveal_url (DM view only): give each closed secret a control that reveals just that passage."""
     if party_view:

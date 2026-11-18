@@ -1,0 +1,42 @@
+{% set url = "/" ~ etype.key ~ "/" ~ entity.id %}
+{% if secrecy.task and secrecy.task.status in ("running", "failed") and not secrecy.audit %}
+  {% with task = secrecy.task %}{% include "_audit_task.html" %}{% endwith %}
+{% elif secrecy.audit %}{% set a = secrecy.audit %}
+<section class="review-panel secrecy-panel">
+  <strong>Before revealing: secrecy check</strong>
+  {% if a.findings %}
+  <p class="hint">Ticked passages get wrapped in ||bars||. Obvious leaks come pre-ticked; ambiguous ones are your call.</p>
+  <form method="post" action="{{ url }}/audits/{{ a.id }}/apply">
+    <ul class="decisions">
+      {% for f in a.findings %}
+      <li>
+        <label class="checkbox"><input type="checkbox" name="finding" value="{{ f.key }}"{% if f.severity == "obvious" %} checked{% endif %}>
+          <span class="badge {{ 'badge-draft' if f.severity == 'obvious' else 'badge-edit' }}">{{ f.severity }}</span>
+          {{ f.field_label }}: “{{ f.quote }}”</label>
+        <p class="hint">{{ f.reason }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="form-actions">
+      {% if not entity.known_to_party %}
+      <button type="submit" name="action" value="reveal" class="primary">Hide ticked &amp; reveal</button>
+      {% endif %}
+      <button type="submit" name="action" value="hide">Hide ticked{% if not entity.known_to_party %}, don't reveal yet{% endif %}</button>
+    </div>
+  </form>
+  {% else %}
+  <p>Nothing in the visible text gives a secret away.</p>
+  {% if not entity.known_to_party %}
+  <form method="post" action="{{ url }}/audits/{{ a.id }}/apply" class="inline-form">
+    <button type="submit" name="action" value="reveal" class="primary">Reveal to party</button>
+  </form>
+  {% endif %}
+  {% endif %}
+  <form method="post" action="{{ url }}/audits/{{ a.id }}/dismiss" class="inline-form">
+    <button type="submit" class="link-action">Dismiss the check</button>
+  </form>
+</section>
+{% endif %}
+{% if secrecy.failed %}
+<p class="callout">Couldn't hide these automatically; edit them by hand: {% for f in secrecy.failed %}“{{ f.quote }}” ({{ f.field_label }}){{ "; " if not loop.last }}{% endfor %}.</p>
+{% endif %}

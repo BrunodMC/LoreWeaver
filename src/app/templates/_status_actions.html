@@ -19,10 +19,15 @@
   <span class="badge badge-known">known to party</span>
   <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "0"}'
           hx-target="#status-actions" hx-swap="outerHTML">Mark unknown</button>
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/reveal-check"
+          title="Check what the party can see for leaked secrets">Check for leaks</button>
   {% else %}
   <span class="badge badge-unknown">unknown to party</span>
-  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "1"}'
-          hx-target="#status-actions" hx-swap="outerHTML">Reveal to party</button>
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/reveal-check"
+          title="Claude checks the visible text for leaked secrets first; you rule on each, then reveal">Reveal to party…</button>
+  <button type="button" class="link-action" hx-post="/{{ etype.key }}/{{ entity.id }}/known" hx-vals='{"known": "1"}'
+          hx-target="#status-actions" hx-swap="outerHTML"
+          hx-confirm="Reveal without checking for leaks?">reveal without check</button>
   {% endif %}
   {% if entity.status == "draft" %}
   {# Canon always feeds AI generation; a draft (say, a list of open threads) only when opted in. #}

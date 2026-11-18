@@ -32,7 +32,8 @@ class GenerationResult:
 
 
 class Backend(Protocol):
-    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult: ...
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False,
+                 model: str | None = None) -> GenerationResult: ...
 
 
 # ── Claude Code CLI (subscription auth) ────────────────────────────────────
@@ -67,7 +68,8 @@ class ClaudeCLIBackend:
     timeout: float = DEFAULT_TIMEOUT
     executable: str | None = None
 
-    def command(self, system_prompt_file: Path, schema: dict, deep: bool = False) -> list[str]:
+    def command(self, system_prompt_file: Path, schema: dict, deep: bool = False,
+                model: str | None = None) -> list[str]:
         return [
             self.executable or find_claude_executable(),
             "-p",
@@ -78,13 +80,14 @@ class ClaudeCLIBackend:
             "--setting-sources", "",
             "--strict-mcp-config",
             "--no-session-persistence",
-            "--model", self.model,
+            "--model", model or self.model,
             "--effort", self.deep_effort if deep else self.effort,
             "--output-format", "json",
             "--json-schema", json.dumps(schema),
         ]
 
-    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False,
+                 model: str | None = None) -> GenerationResult:
         # The system prompt (rules + the whole bible) goes through a file and the brief through stdin:
         # Windows caps a command line at ~32k characters and the bible alone is bigger than that.
         # A scratch working directory keeps any project CLAUDE.md out of reach.
@@ -93,7 +96,7 @@ class ClaudeCLIBackend:
             system_file.write_text(system, encoding="utf-8")
             try:
                 completed = subprocess.run(
-                    self.command(system_file, schema, deep), input=prompt, capture_output=True,
+                    self.command(system_file, schema, deep, model), input=prompt, capture_output=True,
                     text=True, encoding="utf-8", timeout=self.timeout, cwd=scratch,
                 )
             except subprocess.TimeoutExpired as exc:
@@ -128,15 +131,17 @@ class FakeBackend:
     calls: list[dict] = field(default_factory=list)
     model: str = "fake-model"
 
-    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
-        self.calls.append({"system": system, "prompt": prompt, "schema": schema, "deep": deep})
+    def generate(self, system: str, prompt: str, schema: dict, deep: bool = False,
+                 model: str | None = None) -> GenerationResult:
+        self.calls.append({"system": system, "prompt": prompt, "schema": schema, "deep": deep,
+                           "model": model})
         if not self.responses:
             raise LLMError("FakeBackend ran out of scripted responses.")
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response
         data = response(system, prompt, schema) if callable(response) else response
-        return GenerationResult(data=data, model=self.model, usage={"output_tokens": 0})
+        return GenerationResult(data=data, model=model or self.model, usage={"output_tokens": 0})
 
 
 # ── The door ───────────────────────────────────────────────────────────────
@@ -157,6 +162,8 @@ def set_backend(backend: Backend | None) -> None:
     _backend = backend
 
 
-def generate(system: str, prompt: str, schema: dict, deep: bool = False) -> GenerationResult:
-    """deep=True asks the backend to think harder (slower, for briefs that want tangled connections)."""
-    return get_backend().generate(system, prompt, schema, deep)
+def generate(system: str, prompt: str, schema: dict, deep: bool = False,
+             model: str | None = None) -> GenerationResult:
+    """deep=True asks the backend to think harder (slower, for briefs that want tangled connections).
+    model overrides the backend's default (audits pick their own; see audit.py)."""
+    return get_backend().generate(system, prompt, schema, deep, model)

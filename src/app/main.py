@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import db, generation
-from .routes import encounters, entities, generate, review
+from .routes import audits, encounters, entities, generate, review
 
 APP_DIR = Path(__file__).parent
 
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(generate.router)  # first: the entity routes' /{type_key} would swallow /generate
     app.include_router(encounters.router)  # likewise /encounters (the encounter type itself lives at /encounter)
     app.include_router(review.router)
+    app.include_router(audits.router)
     app.include_router(entities.router)
     return app
 

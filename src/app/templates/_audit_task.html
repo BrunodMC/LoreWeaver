@@ -1,0 +1,13 @@
+{% if task.status == "failed" %}
+<div id="audit-task" class="job-status job-failed">
+  <p class="error">The secrecy check didn't come through.</p>
+  <pre class="job-error">{{ task.error }}</pre>
+  <form method="post" action="{{ url }}/reveal-check" class="inline-form"><button type="submit">Check again</button></form>
+</div>
+{% else %}
+<div id="audit-task" class="job-status"
+     hx-get="{{ url }}/reveal-check/status" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p><span class="spinner" aria-hidden="true"></span> Checking what this entry would give away… {{ task.elapsed }}s</p>
+  <p class="hint">Claude reads it against the whole bible. Usually under a minute.</p>
+</div>
+{% endif %}
