@@ -1,0 +1,12 @@
+{% if task.status == "failed" %}
+<div id="composite-task" class="job-status job-failed">
+  <p class="error">{{ task.label }} didn't come through.</p>
+  <pre class="job-error">{{ task.error }}</pre>
+</div>
+{% else %}
+<div id="composite-task" class="job-status"
+     hx-get="/encounters/{{ comp_id }}/status" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p><span class="spinner" aria-hidden="true"></span> {{ task.label }}… {{ task.elapsed }}s</p>
+  <p class="hint">Usually under a minute. Leaving this page doesn't stop it.</p>
+</div>
+{% endif %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Compose an encounter · LoreWeaver{% endblock %}
+{% block content %}
+<h1>Compose an encounter</h1>
+<p class="muted">A scene with its cast: Claude proposes premises, then a pool of candidates to pick from, then drafts the encounter sheet and every new member. Each step waits for you.</p>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="/encounters" class="entity-form generate-form">
+  <label>Brief
+    <textarea name="brief" rows="4" autofocus placeholder="Even a line: where the party is and what's going on. “Inside a crowded inn at night; the party is drunk.”">{{ brief }}</textarea>
+  </label>
+
+  <div class="anchor-picker">
+    <span class="field-label">Anchors <span class="hint">entries the encounter must involve</span></span>
+    <div id="anchor-chips" class="chips">
+      {% for anchor in anchors %}{% include "_anchor_chip.html" %}{% endfor %}
+    </div>
+    <input id="anchor-q" type="search" name="q" placeholder="Search the bible to add an anchor…" autocomplete="off"
+           hx-get="/generate/anchors" hx-trigger="input changed delay:250ms, search"
+           hx-target="#anchor-results" hx-include="this">
+    <div id="anchor-results"></div>
+  </div>
+
+  <label>PCs in the scene
+    <input type="number" name="pcs" min="1" max="12" value="{{ pcs }}" class="narrow">
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" name="action" value="spines" class="primary">Propose premises</button>
+    <button type="submit" name="action" value="skip" title="Skip the premises: go straight to the cast pool">Use my brief as the premise</button>
+  </div>
+</form>
+{% endblock %}

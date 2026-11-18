@@ -200,3 +200,27 @@ button.danger:hover { background: #fdf0ef; }
 
 .decisions { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .decision-actions { display: inline-flex; gap: 6px; margin-left: 6px; vertical-align: middle; }
+
+/* Composing an encounter */
+input.narrow { width: 5em; }
+.chip-static { padding-right: 10px; }
+.spine-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.spine-card { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.spine-card textarea { width: 100%; }
+.pool-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 800px) { .pool-layout { grid-template-columns: 1fr; } }
+.pool-side { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 16px; }
+.pool-group { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 14px; padding: 8px 12px 12px; }
+.pool-group legend { font-weight: 600; padding: 0 4px; }
+.pool-member { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid #eef0f2; }
+.pool-member:first-of-type { border-top: none; }
+.pool-member.ticked { background: #f4f9f5; }
+.pool-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.pool-fields p { margin: 0; }
+.pool-fields textarea, .pool-name { width: 100%; }
+.pool-name { font-weight: 600; }
+.pool-stats { display: flex; gap: 8px; align-items: center; }
+.bp-meter { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.bp-numbers { margin: 0 0 6px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.bp-bar { width: 100%; height: 14px; }
+.bp-lines { list-style: none; padding: 0; margin: 6px 0; }

@@ -1,0 +1,20 @@
+<div id="meter" class="bp-meter">
+  {% if meter.has_adversaries %}
+  <p class="bp-numbers">
+    <strong>Battle Points: {{ meter.spent }} / {{ meter.budget }}</strong>
+    {% if meter.remaining < 0 %}<span class="error">{{ -meter.remaining }} over budget</span>
+    {% elif meter.remaining == 0 %}<span class="hint">exactly on budget</span>
+    {% else %}<span class="hint">{{ meter.remaining }} left</span>{% endif %}
+  </p>
+  <meter min="0" max="{{ meter.budget if meter.budget > 0 else 1 }}" low="{{ meter.budget }}" high="{{ meter.budget }}"
+         optimum="0" value="{{ meter.spent }}" class="bp-bar">{{ meter.spent }} of {{ meter.budget }}</meter>
+  <ul class="bp-lines hint">
+    <li>Base 3×{{ meter.pcs }}+2 = {{ meter.base }}</li>
+    {% for label, delta in meter.adjustments %}<li>{{ "%+d"|format(delta) }} {{ label }}</li>{% endfor %}
+    {% for s in meter.spends %}<li>{{ s.cost }} · {{ s.label }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">No adversaries ticked: no Battle Point budget. Environments cost nothing.</p>
+  {% endif %}
+  <p class="hint">{{ ticked }} cast member{{ "s" if ticked != 1 }} ticked.</p>
+</div>

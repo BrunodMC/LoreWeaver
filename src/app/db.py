@@ -395,6 +395,12 @@ def update_composite(conn: sqlite3.Connection, composite_id: int, **changes) -> 
                      (*values, composite_id))
 
 
+def delete_composite(conn: sqlite3.Connection, composite_id: int) -> None:
+    """Drafts made for it stay; their history just forgets the workspace."""
+    with conn:
+        conn.execute("DELETE FROM composites WHERE id = ?", (composite_id,))
+
+
 def composite_for_entity(conn: sqlite3.Connection, entity_id: int) -> int | None:
     """The composite a draft was made for, if any (its generation history remembers)."""
     row = conn.execute("SELECT composite_id FROM generations WHERE entity_id = ? AND composite_id IS NOT NULL "

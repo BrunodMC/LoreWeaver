@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Composing an encounter · LoreWeaver{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="muted"><a href="/drafts">Drafts to review</a></p>
+    <h1>Composing an encounter</h1>
+  </div>
+  {% if comp.stage in ("spines", "pool") and not (task and task.status == "running") %}
+  <form method="post" action="/encounters/{{ comp.id }}/discard" class="inline-form"
+        onsubmit="return confirm('Throw away this workspace? Nothing has been drafted yet.')">
+    <button type="submit">Discard workspace</button>
+  </form>
+  {% endif %}
+</div>
+
+<dl class="fields">
+  <dt>Brief</dt><dd class="field-value">{{ comp.brief }}</dd>
+  {% if anchors %}<dt>Anchors</dt><dd>{% for a in anchors %}<span class="chip chip-static"><span class="type-tag">{{ entity_types[a.type].label }}</span> {{ a.name }}</span> {% endfor %}</dd>{% endif %}
+  {% if comp.stage != "spines" and comp.spine %}<dt>Premise</dt><dd class="field-value">{{ comp.spine|lore }}</dd>{% endif %}
+</dl>
+
+{% if task and (task.status == "running" or task.status == "failed") %}
+  {% with comp_id = comp.id %}{% include "_composite_task.html" %}{% endwith %}
+{% endif %}
+
+{# ── Step 2: premises ── #}
+{% if comp.stage == "spines" and not (task and task.status == "running") %}
+<h2>Pick a premise</h2>
+<p class="muted">Edit any of them before you pick. The one you pick drives every draft.</p>
+<div class="spine-cards">
+  {% for s in comp.spines %}
+  <form method="post" action="/encounters/{{ comp.id }}/choose" class="spine-card">
+    <textarea name="spine" rows="6">{{ s.title }}
+{{ s.premise }}</textarea>
+    <p class="hint">{{ s.why }}</p>
+    <button type="submit" class="primary">Use this premise</button>
+  </form>
+  {% endfor %}
+  <form method="post" action="/encounters/{{ comp.id }}/choose" class="spine-card">
+    <textarea name="spine" rows="6" placeholder="Or write your own premise">{{ comp.spine or comp.brief }}</textarea>
+    <p class="hint">Your own, or the brief as it stands.</p>
+    <button type="submit">Use this one</button>
+  </form>
+</div>
+<form method="post" action="/encounters/{{ comp.id }}/spines"><button type="submit">Propose three new premises</button></form>
+{% endif %}
+
+{# ── Step 3: the cast pool ── #}
+{% if comp.stage == "pool" and not (task and task.status == "running" and task.kind == "pool") %}
+<div class="page-head">
+  <h2>Pick the cast</h2>
+  <form method="post" action="/encounters/{{ comp.id }}/back-to-spines" class="inline-form">
+    <button type="submit" title="Back to the premises; picking one gathers a new pool">Change the premise</button>
+  </form>
+</div>
+<p class="muted">Tick who's in the scene and edit anything in place: it saves as you go. Mix freely: every candidate fits this premise.</p>
+
+<div class="pool-layout">
+  <form id="pool-form" method="post" action="/encounters/{{ comp.id }}/pool"
+        hx-post="/encounters/{{ comp.id }}/pool" hx-trigger="change delay:300ms, keyup changed delay:800ms"
+        hx-target="#meter" hx-swap="outerHTML">
+    {% for kind, members in groups %}
+    <fieldset class="pool-group">
+      <legend>{{ entity_types[kind].plural }}</legend>
+      {% for m in members %}
+      <div class="pool-member{% if m.ticked %} ticked{% endif %}">
+        <label class="checkbox"><input type="checkbox" name="tick_{{ m.key }}" value="1"{% if m.ticked %} checked{% endif %}></label>
+        <div class="pool-fields">
+          {% if m.existing_id %}
+          <p><a href="/{{ m.type }}/{{ m.existing_id }}" target="_blank">{{ m.name }}</a> <span class="badge badge-canon">from the bible</span>
+            {% if m.role %}<span class="hint">{{ m.role }}</span>{% endif %}</p>
+          {% else %}
+          <input type="text" name="name_{{ m.key }}" value="{{ m.name }}" aria-label="Name" class="pool-name">
+          {% endif %}
+          {% if m.type == "adversary" %}
+          <div class="pool-stats">
+            {% if not m.existing_id %}
+            <select name="role_{{ m.key }}" aria-label="Role">
+              {% for r in roles %}<option{% if r == m.role %} selected{% endif %}>{{ r }}</option>{% endfor %}
+            </select>
+            {% endif %}
+            <label class="hint">× <input type="number" name="count_{{ m.key }}" value="{{ m.count }}" min="1" max="20" class="narrow"
+              title="{{ 'Groups the size of the party' if m.role == 'Minion' else 'How many' }}"></label>
+          </div>
+          {% endif %}
+          <textarea name="pitch_{{ m.key }}" rows="2" aria-label="Pitch" placeholder="Its part in the scene">{{ m.pitch }}</textarea>
+        </div>
+        <button type="submit" name="drop_{{ m.key }}" value="1" formaction="/encounters/{{ comp.id }}/pool"
+                class="link-action" title="Remove from the pool">✕</button>
+      </div>
+      {% endfor %}
+    </fieldset>
+    {% else %}
+    <p class="muted">The pool is empty.</p>
+    {% endfor %}
+
+    <fieldset class="pool-group">
+      <legend>Budget</legend>
+      <label>PCs <input type="number" name="pcs" min="1" max="12" value="{{ comp.pcs }}" class="narrow"></label>
+      {% for key, (label, delta) in toggles.items() %}
+      <label class="checkbox"><input type="checkbox" name="toggle" value="{{ key }}"{% if key in comp.budget.get('toggles', []) %} checked{% endif %}>
+        {{ label }} ({{ "%+d"|format(delta) }})</label>
+      {% endfor %}
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="submit" formaction="/encounters/{{ comp.id }}/draft" class="primary"
+              {% if task and task.status == "running" %}disabled{% endif %}>Draft these</button>
+      <button type="submit" formaction="/encounters/{{ comp.id }}/more"
+              {% if task and task.status == "running" %}disabled{% endif %}>More like these</button>
+    </div>
+  </form>
+
+  <aside class="pool-side">
+    {% include "_meter.html" %}
+    <div class="anchor-picker">
+      <span class="field-label">Cast an existing entry</span>
+      <input type="search" name="q" placeholder="Search the bible…" autocomplete="off"
+             hx-get="/encounters/{{ comp.id }}/cast-search" hx-trigger="input changed delay:250ms, search"
+             hx-target="#cast-results" hx-include="this">
+      <div id="cast-results"></div>
+    </div>
+  </aside>
+</div>
+{% endif %}
+
+{# ── Step 4: drafting ── #}
+{% if progress %}{% include "_composite_progress.html" %}{% endif %}
+{% endblock %}

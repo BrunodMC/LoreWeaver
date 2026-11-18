@@ -1,0 +1,38 @@
+<section id="composite-progress"
+         {% if progress.busy %}hx-get="/encounters/{{ comp.id }}/progress" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <h2>Drafts</h2>
+  <ul class="inbox">
+    <li class="inbox-item">
+      <div class="inbox-title">
+        <span class="type-tag">Encounter</span>
+        {% if progress.sheet %}<a href="/encounter/{{ progress.sheet.id }}">{{ progress.sheet.name }}</a> ✓
+        {% else %}<span class="muted">The encounter sheet</span>{% endif %}
+      </div>
+      <p class="hint">Drafted first: every member below follows it.</p>
+    </li>
+    {% for row in progress.rows %}{% set m = row.member %}
+    <li class="inbox-item">
+      <div class="inbox-title">
+        <span class="type-tag">{{ entity_types[m.type].label }}</span>
+        {% if row.entity %}<a href="/{{ row.entity.type }}/{{ row.entity.id }}">{{ row.entity.name }}</a>{% else %}{{ m.name }}{% endif %}
+        {% if row.state == "existing" %}<span class="badge badge-canon">from the bible</span>
+        {% elif row.state == "done" %}✓
+        {% elif row.state == "running" %}<span class="spinner" aria-hidden="true"></span> <span class="hint">{{ row.job.elapsed }}s</span>
+        {% elif row.state == "waiting" %}<span class="hint">waits for the sheet</span>
+        {% else %}
+          <span class="error">{{ "failed" if row.state == "failed" else "lost to a restart" }}</span>
+          {% if progress.sheet %}
+          <form method="post" action="/encounters/{{ comp.id }}/members/{{ m.key }}/retry" class="inline-form">
+            <button type="submit">Retry</button>
+          </form>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if row.state == "failed" and row.job %}<pre class="job-error">{{ row.job.error }}</pre>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if progress.sheet and not progress.busy %}
+  <p><a class="button primary" href="/encounter/{{ progress.sheet.id }}">Review the encounter</a></p>
+  {% endif %}
+</section>
