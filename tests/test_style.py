@@ -19,8 +19,9 @@ def test_a_member_links_back_to_its_cast(client):
         cid = db.create_composite(conn, "brief", [], pcs=4)
         sheet = db.create_entity(conn, "encounter", "Ford toll", {}, status="draft")
         member = db.create_entity(conn, "npc", "Toll-keeper", {}, status="draft")
-        for e, kind in ((sheet, "encounter"), (member, "npc")):
-            db.record_generation(conn, entity_type=kind, kind="generated", entity_id=e, output={}, composite_id=cid)
+        for e, kind, name in ((sheet, "encounter", "Ford toll"), (member, "npc", "Toll-keeper")):
+            db.record_generation(conn, entity_type=kind, kind="generated", entity_id=e,
+                                 output={"name": name, "fields": {}}, composite_id=cid)
         db.update_composite(conn, cid, encounter_id=sheet)
     assert "Back to the cast of Ford toll" in client.get(f"/npc/{member}").text
     assert "Back to the cast" not in client.get(f"/encounter/{sheet}").text
