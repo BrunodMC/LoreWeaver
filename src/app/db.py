@@ -94,6 +94,22 @@ def get_entity(conn: sqlite3.Connection, entity_id: int) -> dict | None:
     return entity_from_row(row) if row else None
 
 
+def party_name(entity: dict) -> str:
+    """What the party calls this entry: its alias if the real name is still a secret."""
+    return (entity.get("party_name") or "").strip() or entity["name"]
+
+
+def as_party_sees(entity: dict) -> dict:
+    """A copy wearing the name the party knows, for anything rendered in party view."""
+    return dict(entity, name=party_name(entity))
+
+
+def set_party_name(conn: sqlite3.Connection, entity_id: int, alias: str) -> None:
+    with conn:
+        conn.execute("UPDATE entities SET party_name = ?, updated_at = datetime('now') WHERE id = ?",
+                     (" ".join(alias.split()), entity_id))
+
+
 def visible_to_party(entity: dict) -> bool:
     return (entity["status"] == "canon" and bool(entity["known_to_party"])
             and entity["type"] not in PARTY_HIDDEN)
@@ -128,7 +144,10 @@ def list_entities(conn: sqlite3.Connection, entity_type: str, statuses: tuple[st
         f"SELECT * FROM entities WHERE type = ? AND status IN ({placeholders}){party_filter}",
         (entity_type, *statuses),
     ).fetchall()
-    return sorted((entity_from_row(r) for r in rows), key=list_sort_key(entity_type))
+    entities = (entity_from_row(r) for r in rows)
+    if party_view:
+        entities = (as_party_sees(e) for e in entities)
+    return sorted(entities, key=list_sort_key(entity_type))
 
 
 def link_targets(conn: sqlite3.Connection, exclude_id: int) -> list[dict]:
@@ -146,9 +165,11 @@ def links_for(conn: sqlite3.Connection, entity_id: int, party_view: bool = False
         " AND l.known_to_party = 1 AND e.known_to_party = 1 AND e.status = 'canon' AND e." + PARTY_TYPES_SQL
         if party_view else ""
     )
+    other_name = "CASE WHEN e.party_name != '' THEN e.party_name ELSE e.name END" if party_view else "e.name"
     columns = (
         "SELECT l.id, l.relation_label, l.known_to_party, e.id AS other_id, e.type AS other_type, "
-        "e.name AS other_name, e.status AS other_status, e.known_to_party AS other_known "
+        f"{other_name} AS other_name, e.party_name AS other_party_name, e.status AS other_status, "
+        "e.known_to_party AS other_known "
     )
     outgoing = conn.execute(
         columns + "FROM links l JOIN entities e ON e.id = l.to_entity_id "

@@ -8,6 +8,9 @@
   <label>Name
     <input type="text" name="name" value="{{ values.name }}" required autofocus>
   </label>
+  <label>Known to the party as <span class="hint">only if the real name is a secret: “the voice in the night bloom”</span>
+    <input type="text" name="party_name" value="{{ values.party_name if values.party_name is defined else '' }}">
+  </label>
 
   {% if not entity %}
   <label>Status

@@ -63,6 +63,13 @@
       <div>
         <p class="catalogue"><a href="/{{ etype.key }}">{{ etype.plural }}</a> · <b>Cat. {{ etype.label }} · {{ entity.id|roman }}</b></p>
         <h1>{{ entity.name }}</h1>
+        {% if entity.party_name %}
+        <p class="alias">The party knows them as <strong>“{{ entity.party_name }}”</strong>
+          <form method="post" action="/{{ etype.key }}/{{ entity.id }}/reveal-name" class="inline-form"
+                onsubmit="return confirm('Reveal the true name, {{ entity.name|e }}, to the party?')">
+            <button type="submit" class="link-action">reveal true name</button>
+          </form></p>
+        {% endif %}
         {% if entity.fields.ancestry_role %}
         {% set role_reveal = "/" ~ etype.key ~ "/" ~ entity.id ~ "/reveal/ancestry_role" if can_reveal else "" %}
         <p class="role">{{ entity.fields.ancestry_role|lore(false, role_reveal, "", "/" ~ etype.key ~ "/" ~ entity.id ~ "/tease/ancestry_role") }}</p>

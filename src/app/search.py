@@ -146,6 +146,8 @@ def searchable_fields(entity: dict, party_view: bool) -> list[tuple[str, str]]:
     pairs = [(f.label, values.get(f.key, "")) for f in etype.fields
              if not (party_view and f.dm_only)]
     if not party_view:
+        if entity.get("party_name"):
+            pairs.insert(0, ("Known to the party as", entity["party_name"]))
         spec_keys = {f.key for f in etype.fields}
         pairs += [(key, value) for key, value in values.items() if key not in spec_keys]
     return [(label, str(value)) for label, value in pairs if value]
@@ -199,6 +201,8 @@ def search(conn: sqlite3.Connection, query: str, statuses: tuple[str, ...],
         entity = db.entity_from_row(row)
         if entity["type"] not in ENTITY_TYPES:
             continue
+        if party_view:
+            entity = db.as_party_sees(entity)  # the party searches by the name they know, never the real one
         result = match_entity(entity, terms, party_view)
         if result:
             results.append(result)

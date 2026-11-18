@@ -215,6 +215,7 @@ async def create(request: Request, type_key: str, conn: Conn):
         values = {"name": name, "status": status, "known_to_party": int(known), "fields": fields}
         return render_form(request, etype, None, values, error, 422)
     entity_id = db.create_entity(conn, type_key, name, fields, status, known)
+    db.set_party_name(conn, entity_id, str(form.get("party_name", "")))
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
@@ -245,6 +246,8 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
     party_view = is_party_view(request)
     if party_view and not db.visible_to_party(entity):
         return render(request, "unknown.html", {"etype": etype}, 404)
+    if party_view:
+        entity = db.as_party_sees(entity)  # the page (title, caption, page title) wears the name they know
     review = None
     if not party_view and under_review(conn, entity):
         review = generation.review_state(conn, entity)
@@ -286,6 +289,7 @@ async def update(request: Request, type_key: str, entity_id: int, conn: Conn):
     if error:
         return render_form(request, etype, entity, {**entity, "name": name, "fields": fields}, error, 422)
     db.update_entity(conn, entity_id, name, fields)
+    db.set_party_name(conn, entity_id, str(form.get("party_name", "")))
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
@@ -311,6 +315,21 @@ async def change_known(request: Request, type_key: str, entity_id: int, conn: Co
     if known and not entity["known_to_party"]:
         db.record_reveal(conn, entity)  # the whole entry, logged for the session
     return render_status(request, conn, etype, entity_id)
+
+
+@router.post("/{type_key}/{entity_id}/reveal-name")
+async def reveal_name(request: Request, type_key: str, entity_id: int, conn: Conn):
+    """The party learns the real name: the alias goes, and the reveal is logged for the session."""
+    if is_party_view(request):
+        raise HTTPException(404, "Not available in party view")
+    entity_type_or_404(type_key)
+    entity = entity_or_404(conn, type_key, entity_id)
+    alias = (entity.get("party_name") or "").strip()
+    if alias:
+        db.set_party_name(conn, entity_id, "")
+        if entity["known_to_party"]:
+            db.record_reveal(conn, entity, "True name", f"{entity['name']} (known until now as {alias})")
+    return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
 @router.post("/{type_key}/{entity_id}/tease/{field_key}/{index}")

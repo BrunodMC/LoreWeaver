@@ -215,6 +215,9 @@ def secrecy_subject(conn, entity: dict) -> Subject:
 
 def secrecy_prompt(subject: Subject) -> str:
     lines = [SECRECY_INSTRUCTIONS, "", f"Entry: {context.ref(subject.entity)}"]
+    if subject.entity.get("party_name"):
+        lines.append(f"The party knows this entry only as “{subject.entity['party_name']}”: its real name is a "
+                     "secret too, so flag any visible text that gives it away.")
     for key, (label, text) in subject.fields.items():
         lines += [f"[{key}] {label}:", text, ""]
     if subject.extra:

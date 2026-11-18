@@ -108,6 +108,8 @@ def render_entry(entity: dict, links: dict[str, list[dict]], included: set[int])
     status = "CANON" if entity["status"] == "canon" else "UNDECIDED"
     knows = " · party knows" if db.visible_to_party(entity) else ""
     lines = [f"### {ref(entity)} · {status}{knows}"]
+    if entity.get("party_name"):
+        lines.append(f"Known to the party only as: {entity['party_name']} (the real name is itself a secret)")
     for f in etype.fields:
         value = entity["fields"].get(f.key, "").strip()
         if value:
