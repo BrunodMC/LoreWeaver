@@ -87,5 +87,9 @@ def test_reveals_file_to_todays_session_or_wait(client, mara):
     with closing(db.get_connection()) as conn:
         assert db.reveals(conn, None) == [] and [r["entity_name"] for r in db.reveals(conn, old)] == ["Cellar"]
     page = client.get(f"/session/{old}").text
-    assert "Revealed this session" in page and "Cellar" in page
+    assert "Reveal log: material for the summary" in page and "Cellar" in page
+    client.get("/view/party")
+    assert "Reveal log" not in client.get(f"/session/{old}").text
+    assert client.post("/reveals/file", data={"reveal": "1", "session_id": str(old)}).status_code == 404  # DM only
+    client.get("/view/dm")
     assert client.post("/reveals/file", data={"reveal": "1", "session_id": str(mara)}).status_code == 422

@@ -46,8 +46,9 @@
 {% endif %}
 
 {% if session_reveals is not none %}
-<section class="session-reveals">
-  <h2>Revealed this session</h2>
+<details class="ai-notes session-reveals">
+  <summary>Reveal log: material for the summary ({{ session_reveals|length }}) <span class="dm-tag">DM only</span></summary>
+  <p class="hint">What the party learned during this session, as raw notes for writing it up. Players never see this list.</p>
   {% if session_reveals %}
   <ul class="link-list">
     {% for r in session_reveals %}
@@ -56,7 +57,7 @@
     {% endfor %}
   </ul>
   {% else %}<p class="muted">Nothing filed to this session yet. Unfiled reveals wait in <a href="/drafts">Drafts to review</a>.</p>{% endif %}
-</section>
+</details>
 {% endif %}
 
 {% include "_links_section.html" %}
