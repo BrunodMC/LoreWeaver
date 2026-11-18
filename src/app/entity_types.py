@@ -115,3 +115,12 @@ ENTITY_TYPES: dict[str, EntityType] = {
 }
 
 STATUSES = ("draft", "canon", "archived")
+
+# The navigation groups the types (ten in one row overflowed). The party's codex names them in its
+# own voice; the DM's archive keeps the plain names.
+NAV_GROUPS = (
+    ("people", "People", "People", ("npc", "pc")),
+    ("places", "Places", "Places", ("location", "faction")),
+    ("threats", "Threats", "Perils", ("adversary", "environment", "encounter")),
+    ("story", "Story", "Tales", ("arc", "item", "session")),
+)

@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import audit, composite, db, generation, knowledge, search as search_mod
-from ..entity_types import ENTITY_TYPES, STATUSES, EntityType
+from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
     """SQLite stores UTC ('YYYY-MM-DD HH:MM:SS'); show it in this machine's local time."""
@@ -19,6 +19,7 @@ def local_time(utc_value: str) -> str:
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parents[1] / "templates")
 templates.env.globals["entity_types"] = ENTITY_TYPES
+templates.env.globals["nav_groups"] = NAV_GROUPS
 templates.env.filters["lore"] = knowledge.render
 templates.env.filters["local_time"] = local_time
 
