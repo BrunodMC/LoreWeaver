@@ -8,6 +8,8 @@ writing as long as the secret, never the secret's own words.
 import hashlib
 import math
 import random
+from dataclasses import dataclass
+from urllib.parse import quote
 
 from markupsafe import Markup, escape
 
@@ -365,30 +367,59 @@ RIP_W, RIP_H = 34.0, 16.0
 RIP_EDGES = ("top", "bottom", "left", "right")
 
 
-def rips(*seed) -> Markup:
-    """A few small tears along a leaf's edges. Each is a jagged notch (drawn for the top edge; CSS turns
-    it to face its own edge), filled with the page's background so the paper reads as missing there,
-    with a pale fringe of torn fibres along the tear."""
+@dataclass
+class Rips:
+    mask: str        # inline CSS: the page minus its tears, so what's behind shows through
+    fringe: Markup   # pale torn fibres drawn along each tear, in the same boxes the mask cuts
+
+
+def rips(*seed) -> Rips:
+    """A few small tears along a leaf's edges, cut out of the page with a CSS mask (base layer minus one
+    notch image per tear), so the border goes with them and whatever is behind the page shows through.
+    Each notch is a ragged V drawn in its own small box at that edge; the same box carries its fringe."""
     r = rng("rips", *seed)
-    out = []
+    images, sizes, positions, fringes = [], [], [], []
     for _ in range(1 + r.randrange(3)):
         edge = r.choice(RIP_EDGES)
         at = 8 + r.random() * 84  # percent along that edge, clear of the corners
         w = RIP_W * (0.6 + r.random() * 0.8)
         depth = RIP_H * (0.45 + r.random() * 0.55)
         steps = 7 + r.randrange(6)
-        pts = [(0.0, 0.0)]
-        for k in range(1, steps):  # a ragged V: deepest near the middle, jagged all along
+        notch = [(0.0, 0.0)]
+        for k in range(1, steps):  # x along the edge, y into the page: deepest near the middle, jagged
             x = w * k / steps + (r.random() - 0.5) * w / steps * 0.8
             reach = depth * math.sin(math.pi * k / steps) ** 0.8
-            pts.append((x, max(0.5, reach * (0.55 + r.random() * 0.45))))
-        pts.append((w, 0.0))
-        tear = " L".join(f"{_f(x)} {_f(y)}" for x, y in pts)
-        fringe = " L".join(f"{_f(x)} {_f(y + 0.9)}" for x, y in pts[1:-1])
-        out.append(f'<svg class="rip rip-{edge}" style="--at: {at:.1f}%" width="{_f(w)}" height="{_f(depth + 2)}" '
-                   f'viewBox="0 0 {_f(w)} {_f(depth + 2)}" aria-hidden="true" focusable="false">'
-                   f'<path class="rip-fringe" d="M{fringe}"/><path class="rip-gap" d="M{tear} Z"/></svg>')
-    return Markup("".join(out))
+            notch.append((x, max(0.5, reach * (0.55 + r.random() * 0.45))))
+        notch.append((w, 0.0))
+        d = depth + 2
+        # Turn (along, into) into this edge's box: the mask image and the fringe overlay share it.
+        place = {"top": lambda a, i: (a, i), "bottom": lambda a, i: (a, d - i),
+                 "left": lambda a, i: (i, a), "right": lambda a, i: (d - i, a)}[edge]
+        bw, bh = (w, d) if edge in ("top", "bottom") else (d, w)
+        cut = " L".join(f"{_f(x)} {_f(y)}" for x, y in (place(a, i) for a, i in notch))
+        fibre = " L".join(f"{_f(x)} {_f(y)}" for x, y in (place(a, i + 0.9) for a, i in notch[1:-1]))
+        svg = (f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {_f(bw)} {_f(bh)}' width='{_f(bw)}' "
+               f"height='{_f(bh)}'><path d='M{cut} Z'/></svg>")
+        images.append('url("data:image/svg+xml,' + quote(svg, safe="/:=' ") + '")')
+        sizes.append(f"{_f(bw)}px {_f(bh)}px")
+        pos = {"top": f"{at:.1f}% 0%", "bottom": f"{at:.1f}% 100%", "left": f"0% {at:.1f}%",
+               "right": f"100% {at:.1f}%"}[edge]
+        positions.append(pos)
+        # The overlay sits where the mask's percentage position puts the notch: p% of (box − notch).
+        left = {"top": f"calc((100% - {_f(bw)}px) * {at / 100:.3f})", "bottom": f"calc((100% - {_f(bw)}px) * {at / 100:.3f})",
+                "left": "0px", "right": f"calc(100% - {_f(bw)}px)"}[edge]
+        top = {"top": "0px", "bottom": f"calc(100% - {_f(bh)}px)", "left": f"calc((100% - {_f(bh)}px) * {at / 100:.3f})",
+               "right": f"calc((100% - {_f(bh)}px) * {at / 100:.3f})"}[edge]
+        fringes.append(f'<svg class="rip" style="left: {left}; top: {top}" width="{_f(bw)}" height="{_f(bh)}" '
+                       f'viewBox="0 0 {_f(bw)} {_f(bh)}" aria-hidden="true" focusable="false">'
+                       f'<path class="rip-fringe" d="M{fibre}"/></svg>')
+    layers = len(images)
+    mask = ("mask-image: linear-gradient(#000 0 0), " + ", ".join(images) + "; "
+            "mask-size: 100% 100%, " + ", ".join(sizes) + "; "
+            "mask-position: 0 0, " + ", ".join(positions) + "; "
+            "mask-repeat: no-repeat; "
+            "mask-composite: subtract" + ", add" * layers + ";")
+    return Rips(mask=mask, fringe=Markup("".join(fringes)))
 
 
 # ── An ink-wash portrait, until there's a real one ─────────────────────────

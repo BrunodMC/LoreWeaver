@@ -319,15 +319,11 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
 /* ── The party's entry: a leaf of the field-book ──────────────────────── */
 .leaf { position: relative; isolation: isolate; overflow: hidden; background: var(--panel); border: 1px solid var(--line);
   border-radius: 3px; padding: 30px 34px 34px;
-  box-shadow: inset 0 0 90px color-mix(in srgb, var(--cx-age) 32%, transparent), inset 0 0 14px color-mix(in srgb, var(--cx-age) 20%, transparent), 0 1px 0 var(--line), 0 18px 40px -28px rgb(0 0 0 / 0.55); }
+  box-shadow: inset 0 0 90px color-mix(in srgb, var(--cx-age) 32%, transparent), inset 0 0 14px color-mix(in srgb, var(--cx-age) 20%, transparent); }
+.leaf-shadow { filter: drop-shadow(0 1px 0 var(--line)) drop-shadow(0 14px 16px rgb(0 0 0 / 0.22)); }  /* follows the cut-out tears */
 .leaf > *:not(.lichen):not(.foxing):not(.rip) { position: relative; z-index: 1; }
-/* Small tears at the edges (ornament.rips): a notch where the paper is gone, a pale fringe of torn fibres. */
-.rip { position: absolute; z-index: 2; overflow: visible; pointer-events: none; transform-origin: 0 0; }
-.rip-top { top: -1px; left: var(--at); transform: translateX(-50%); }
-.rip-bottom { top: calc(100% + 1px); left: var(--at); transform: rotate(180deg) translateX(-50%); }
-.rip-left { left: -1px; top: var(--at); transform: rotate(-90deg) translateX(-50%); }
-.rip-right { left: calc(100% + 1px); top: var(--at); transform: rotate(90deg) translateX(-50%); }
-.rip .rip-gap { fill: var(--cx-rip-gap); stroke: color-mix(in srgb, var(--cx-rip-gap) 60%, #000000); stroke-width: 0.8; }  /* the table, in the page's shadow */
+/* Small tears at the edges (ornament.rips): cut out of the page by its mask; a pale fringe of torn fibres. */
+.rip { position: absolute; z-index: 2; overflow: visible; pointer-events: none; }
 .rip .rip-fringe { fill: none; stroke: var(--cx-rip-fringe); stroke-width: 1; stroke-linejoin: round; opacity: 0.6; }
 /* Age on the page (ornament.py): grain and foxing across it, lichen creeping in from a corner. */
 .foxing { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }

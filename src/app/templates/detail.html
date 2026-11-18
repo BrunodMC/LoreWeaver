@@ -5,10 +5,12 @@
 {% if party_view %}
 {# ── The players' codex: a leaf of the field-book ── #}
 {% set role = entity.fields.get("ancestry_role", "")|lore(true, "", entity.id ~ ":ancestry_role") %}
-<article class="leaf{% if etype.key in portrait_types %} with-portrait{% endif %}">
+{% set tear = ornament.rips(etype.key, entity.id) %}
+<div class="leaf-shadow">{# the shadow follows the page's real outline, tears included #}
+<article class="leaf{% if etype.key in portrait_types %} with-portrait{% endif %}" style="{{ tear.mask }}">
   {{ ornament.foxing(etype.key, entity.id) }}
   {{ ornament.lichen(etype.key, entity.id) }}
-  {{ ornament.rips(etype.key, entity.id) }}
+  {{ tear.fringe }}
   {% if etype.key in portrait_types %}
   <figure class="portrait">
     {% if has_portrait %}<img class="portrait-img" src="/portrait/{{ entity.id }}" alt="Portrait of {{ entity.name }}">{% else %}{{ ornament.portrait(etype.key, entity.id) }}{% endif %}
@@ -33,6 +35,7 @@
     {% include "_links_section.html" %}
   </div>
 </article>
+</div>
 
 {% else %}
 {# ── The DM's archive: a catalogued slab of marble ── #}
