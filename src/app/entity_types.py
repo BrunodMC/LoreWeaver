@@ -88,6 +88,14 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("features", "Features", dm_only=True),
             Field("notes", "Notes"),
         )),
+        EntityType("encounter", "Encounter", "Encounters", (
+            Field("premise", "Premise"),
+            Field("setting", "Setting & layout"),
+            Field("stakes", "Stakes"),
+            Field("battle_points", "Battle Points", "text", dm_only=True),
+            Field("phases", "Phases", dm_only=True),
+            Field("notes", "Notes"),
+        )),
         EntityType("environment", "Environment", "Environments", (
             Field("description", "Description"),  # one evocative line; the rest is the GM's stat block
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),

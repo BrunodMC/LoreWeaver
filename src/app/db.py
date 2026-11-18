@@ -303,7 +303,8 @@ def generation_from_row(row: sqlite3.Row) -> dict:
 def record_generation(conn: sqlite3.Connection, *, entity_type: str, kind: str, output: dict,
                       entity_id: int | None = None, lineage_id: int | None = None,
                       brief: str = "", notes: str = "", anchors: list[int] | tuple[int, ...] = (),
-                      model: str | None = None, usage: dict | None = None) -> int:
+                      model: str | None = None, usage: dict | None = None,
+                      composite_id: int | None = None) -> int:
     """Store one version. Without a lineage_id it starts a new lineage, keyed by its own id."""
     if kind not in GENERATION_KINDS:
         raise ValueError(f"Unknown generation kind: {kind}")
@@ -315,9 +316,9 @@ def record_generation(conn: sqlite3.Connection, *, entity_type: str, kind: str, 
     with conn:  # one transaction: a new lineage's row is never left without its lineage id
         cur = conn.execute(
             "INSERT INTO generations (lineage_id, entity_id, entity_type, kind, brief, notes, anchors, "
-            "output, model, usage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "output, model, usage, composite_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (lineage_id, entity_id, entity_type, kind, brief, notes, json.dumps(list(anchors)),
-             json.dumps(output), model, json.dumps(usage) if usage is not None else None),
+             json.dumps(output), model, json.dumps(usage) if usage is not None else None, composite_id),
         )
         if lineage_id is None:  # a new lineage is keyed by its first row's id
             conn.execute("UPDATE generations SET lineage_id = id WHERE id = ?", (cur.lastrowid,))
@@ -353,3 +354,56 @@ def delete_entity(conn: sqlite3.Connection, entity_id: int) -> None:
     """Hard delete. Links cascade; generation history keeps its rows with entity_id set to NULL."""
     with conn:
         conn.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
+
+
+# ── Composites (multi-entry encounter workspaces) ──────────────────────────
+
+COMPOSITE_JSON = ("anchors", "spines", "pool", "budget")
+COMPOSITE_STAGES = ("spines", "pool", "drafting", "done")
+COMPOSITE_COLUMNS = ("brief", "pcs", "spine", "stage", "encounter_id") + COMPOSITE_JSON
+
+
+def composite_from_row(row: sqlite3.Row) -> dict:
+    composite = dict(row)
+    for key in COMPOSITE_JSON:
+        composite[key] = json.loads(composite[key])
+    return composite
+
+
+def create_composite(conn: sqlite3.Connection, brief: str, anchors: list[int], pcs: int) -> int:
+    with conn:
+        cur = conn.execute("INSERT INTO composites (brief, anchors, pcs) VALUES (?, ?, ?)",
+                           (brief.strip(), json.dumps(list(anchors)), pcs))
+    return cur.lastrowid
+
+
+def get_composite(conn: sqlite3.Connection, composite_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM composites WHERE id = ?", (composite_id,)).fetchone()
+    return composite_from_row(row) if row else None
+
+
+def update_composite(conn: sqlite3.Connection, composite_id: int, **changes) -> None:
+    unknown = set(changes) - set(COMPOSITE_COLUMNS)
+    if unknown:
+        raise ValueError(f"Unknown composite columns: {sorted(unknown)}")
+    if changes.get("stage", "spines") not in COMPOSITE_STAGES:
+        raise ValueError(f"Unknown composite stage: {changes['stage']}")
+    values = [json.dumps(v) if k in COMPOSITE_JSON else v for k, v in changes.items()]
+    assignments = ", ".join(f"{k} = ?" for k in changes)
+    with conn:
+        conn.execute(f"UPDATE composites SET {assignments}, updated_at = datetime('now') WHERE id = ?",
+                     (*values, composite_id))
+
+
+def composite_for_entity(conn: sqlite3.Connection, entity_id: int) -> int | None:
+    """The composite a draft was made for, if any (its generation history remembers)."""
+    row = conn.execute("SELECT composite_id FROM generations WHERE entity_id = ? AND composite_id IS NOT NULL "
+                       "ORDER BY id DESC LIMIT 1", (entity_id,)).fetchone()
+    return row[0] if row else None
+
+
+def composite_members(conn: sqlite3.Connection, composite_id: int) -> list[dict]:
+    """Entries drafted for a composite (the encounter sheet included), oldest first."""
+    rows = conn.execute("SELECT * FROM entities WHERE id IN (SELECT DISTINCT entity_id FROM generations "
+                        "WHERE composite_id = ? AND entity_id IS NOT NULL) ORDER BY id", (composite_id,)).fetchall()
+    return [entity_from_row(r) for r in rows]

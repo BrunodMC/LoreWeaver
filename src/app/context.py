@@ -62,6 +62,13 @@ FIELD_HINTS: dict[tuple[str, str], str] = {
     ("adversary", "thresholds"): "Major/severe, like 7/14, per the tier benchmarks.",
     ("adversary", "standard_attack"): "Name: range | damage, like Claws: Melee | 1d8+2 phy.",
     ("adversary", "features"): "One feature per line: Name - Action/Reaction/Passive: effect.",
+    ("encounter", "premise"): "What the scene is about: what's happening, who wants what, what makes it turn.",
+    ("encounter", "setting"): "Terrain, layout and who is where when the scene opens: concrete enough to sketch.",
+    ("encounter", "stakes"): "What is won or lost, for the party and for the others in the scene.",
+    ("encounter", "battle_points"): "Budget and spend per the adversary module, like 'Budget 14 · spent 13: "
+                                    "2× Standard (4), 1 Leader (3)…'. Empty if the scene has no adversaries.",
+    ("encounter", "phases"): "2-4 beats for how the scene escalates or turns, each with its trigger "
+                             "(a countdown, an adversary's HP, Fear spent, a choice).",
     ("environment", "description"): "One evocative line: what the party sees and feels. Player-safe unless barred.",
     ("environment", "impulses"): "2-3 short phrases for how the place pushes and pulls people, per the environment module.",
     ("environment", "difficulty"): "A number per the tier benchmarks, or 'Special' if a feature sets it.",

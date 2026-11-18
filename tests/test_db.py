@@ -8,7 +8,7 @@ from src.app import db
 
 def test_migrations_apply_once_and_foreign_keys_are_on(conn):
     db.init_db()  # second run must be a no-op
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == db._migrations()[-1][0]
     assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
 
 
@@ -129,7 +129,7 @@ def test_migration_upgrades_a_version_1_database(temp_db):
         raw.execute("INSERT INTO entities (type, name) VALUES ('npc', 'Old Mara')")
     db.init_db()
     with sqlite3.connect(temp_db) as raw:
-        assert raw.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert raw.execute("PRAGMA user_version").fetchone()[0] == db._migrations()[-1][0]
         assert raw.execute("SELECT name, known_to_party FROM entities").fetchone() == ("Old Mara", 0)
 
 
@@ -157,3 +157,30 @@ def test_party_view_filters_entities_and_links(conn):
     assert [(l["relation_label"], l["other_name"]) for l in outgoing] == [("member of", "Ashen Circle")]
     assert len(db.links_for(conn, known)["outgoing"]) == 4
     assert db.party_counts(conn)["npc"] == 1
+
+
+def test_composite_workspace_round_trip(conn):
+    cid = db.create_composite(conn, "  a tense crossing  ", [3, 5], pcs=4)
+    composite = db.get_composite(conn, cid)
+    assert (composite["brief"], composite["anchors"], composite["pcs"], composite["stage"]) == \
+        ("a tense crossing", [3, 5], 4, "spines")
+    db.update_composite(conn, cid, spines=[{"title": "T", "premise": "P", "why": "W"}], stage="pool")
+    composite = db.get_composite(conn, cid)
+    assert composite["spines"][0]["title"] == "T" and composite["stage"] == "pool"
+    with pytest.raises(ValueError):
+        db.update_composite(conn, cid, stage="nonsense")
+    with pytest.raises(ValueError):
+        db.update_composite(conn, cid, id=99)
+    assert db.get_composite(conn, 999) is None
+
+
+def test_drafts_remember_their_composite(conn):
+    cid = db.create_composite(conn, "brief", [], pcs=3)
+    sheet = db.create_entity(conn, "encounter", "Ford ambush", {}, status="draft")
+    lone = db.create_entity(conn, "npc", "Unrelated", {}, status="draft")
+    db.record_generation(conn, entity_type="encounter", kind="generated", entity_id=sheet, output={},
+                         composite_id=cid)
+    db.record_generation(conn, entity_type="npc", kind="generated", entity_id=lone, output={})
+    assert db.composite_for_entity(conn, sheet) == cid
+    assert db.composite_for_entity(conn, lone) is None
+    assert [e["name"] for e in db.composite_members(conn, cid)] == ["Ford ambush"]
