@@ -23,6 +23,15 @@ draft new entries grounded in everything already written.
   don't touch are kept exactly as they are), *Discard*, and a version history you can step through
   and restore. *Drafts to review* lists everything waiting.
 
+- **Reveal without leaking.** *Reveal to party…* first has Claude read what the players would see
+  against the whole bible and flag passages that give a secret away. Obvious leaks come pre-ticked,
+  ambiguous ones are your call, and *Hide ticked & reveal* bars them and reveals the entry (*reveal
+  without check* skips it). On an entry the party already knows, each `||secret||` passage has its
+  own reveal control, for letting one detail slip mid-session.
+- **Reveals are logged by session.** Every reveal, whole entry or single passage, is recorded. It
+  files itself to a session entry dated that day; otherwise it waits under *Unfiled reveals* in the
+  inbox, to file once the session's entry is written. A session's page lists what was revealed.
+
 Nothing the AI writes becomes canon, or reaches the players, without the DM choosing it.
 
 ## Setup
@@ -84,6 +93,7 @@ Tests run against a temporary database and a scripted fake model: no test can ca
 | `src/app/llm.py` | The one door to the model (`claude -p` backend, fake backend for tests) |
 | `src/app/context.py` | What the model sees (prompt, bible rendering, output schema) and the checks on its answers |
 | `src/app/generation.py` | Running generations as background jobs, versions, promote and restore |
+| `src/app/audit.py` | Audits: a model flags passages for the DM to rule on (the secrecy check is the first kind) |
 | `src/app/composite.py`, `battle.py` | Composite encounters (spines, cast pool, sheet, members) and Battle Point arithmetic |
 | `src/app/routes/` | Pages: browsing and editing, generation, encounters, review |
 | `src/context/` | Rules and campaign-frame modules fed to the model |
