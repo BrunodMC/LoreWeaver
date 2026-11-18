@@ -486,6 +486,17 @@ def file_reveals(conn: sqlite3.Connection, reveal_ids: list[int], session_id: in
         conn.executemany("UPDATE reveals SET session_id = ? WHERE id = ?", [(session_id, r) for r in reveal_ids])
 
 
+def get_setting(conn: sqlite3.Connection, key: str) -> str:
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return row[0] if row else ""
+
+
+def set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
+    with conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value.strip()))
+
+
 def dismiss_reveal(conn: sqlite3.Connection, reveal_id: int) -> None:
     with conn:
         conn.execute("DELETE FROM reveals WHERE id = ? AND session_id IS NULL", (reveal_id,))

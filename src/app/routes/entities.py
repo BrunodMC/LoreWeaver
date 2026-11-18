@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import audit, composite, db, generation, knowledge, ornament, search as search_mod, statblock
+from .. import audit, composite, db, generation, knowledge, ornament, portraits, search as search_mod, statblock
 from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -260,6 +260,9 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "cast": composite.cast_review(conn, entity) if not party_view and entity["type"] == "encounter" else None,
         "back_to_cast": None if party_view else encounter_of(conn, entity),
         "can_reveal": not party_view and db.visible_to_party(entity),
+        "has_portrait": portraits.find(entity_id) is not None,
+        "portrait_prompt": portraits.prompt(conn, entity) if not party_view and type_key in portraits.TYPES else "",
+        "portrait_style": portraits.style(conn) if not party_view and type_key in portraits.TYPES else "",
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,

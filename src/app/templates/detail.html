@@ -11,7 +11,7 @@
   {{ ornament.rips(etype.key, entity.id) }}
   {% if etype.key in portrait_types %}
   <figure class="portrait">
-    {{ ornament.portrait(etype.key, entity.id) }}
+    {% if has_portrait %}<img class="portrait-img" src="/portrait/{{ entity.id }}" alt="Portrait of {{ entity.name }}">{% else %}{{ ornament.portrait(etype.key, entity.id) }}{% endif %}
     <figcaption>{{ entity.name }}, as the party remembers {{ "it" if etype.key == "adversary" else "them" }}</figcaption>
   </figure>
   {% endif %}
@@ -95,6 +95,42 @@
   {% if review %}{% include "_review_panel.html" %}{% endif %}
   {% if cast %}{% include "_cast_panel.html" %}{% endif %}
   {% if secrecy %}{% include "_secrecy_panel.html" %}{% endif %}
+
+  {% if etype.key in portrait_types %}
+  <details class="ai-notes portrait-panel">
+    <summary>Portrait <span class="hint">{{ "uploaded" if has_portrait else "an ink wash until you add one" }}</span></summary>
+    <div class="portrait-row">
+      <div class="portrait-thumb">
+        {% if has_portrait %}<img src="/portrait/{{ entity.id }}" alt="Portrait of {{ entity.name }}">{% else %}{{ ornament.portrait(etype.key, entity.id) }}{% endif %}
+      </div>
+      <div class="portrait-tools">
+        <form method="post" action="/{{ etype.key }}/{{ entity.id }}/portrait" enctype="multipart/form-data" class="form-actions">
+          <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" required aria-label="Portrait image">
+          <button type="submit">{{ "Replace" if has_portrait else "Upload" }}</button>
+        </form>
+        {% if has_portrait %}
+        <form method="post" action="/{{ etype.key }}/{{ entity.id }}/portrait/remove" class="inline-form"
+              onsubmit="return confirm('Remove this portrait? The ink wash comes back.')"><button type="submit" class="danger">Remove</button></form>
+        {% endif %}
+        <p class="field-label">Prompt for an image generator</p>
+        <p class="hint">Only what the party can see goes in, since the portrait will be shown to them. Paste it into Copilot or ChatGPT, then upload the result here.</p>
+        <textarea id="portrait-prompt" readonly rows="6">{{ portrait_prompt }}</textarea>
+        <div class="form-actions">
+          <button type="button" onclick="var b = this, t = document.getElementById('portrait-prompt');
+            navigator.clipboard.writeText(t.value).then(function () { b.textContent = 'Copied'; }, function () { t.select(); b.textContent = 'Press Ctrl+C'; });">Copy prompt</button>
+        </div>
+        <details>
+          <summary class="hint">The style every portrait shares</summary>
+          <form method="post" action="/settings/portrait-style" class="entity-form">
+            <textarea name="style" rows="4">{{ portrait_style }}</textarea>
+            <input type="hidden" name="next" value="/{{ etype.key }}/{{ entity.id }}">
+            <div class="form-actions"><button type="submit">Save style</button></div>
+          </form>
+        </details>
+      </div>
+    </div>
+  </details>
+  {% endif %}
 
   <dl class="fields">
     {% for f in etype.fields if f.key != "ancestry_role" or not entity.fields.ancestry_role %}

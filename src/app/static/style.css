@@ -352,7 +352,13 @@ label.checkbox { display: inline-flex; flex-direction: row; align-items: center;
 .kicker a { color: var(--accent); text-decoration: none; }
 .leaf .role { font-style: italic; margin-top: 2px; }
 .portrait { margin: 0; border: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-.portrait .wash { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; }
+.portrait .wash, .portrait-img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; }
+.portrait-panel { margin: 0 0 14px; }
+.portrait-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; margin-top: 10px; align-items: start; }
+.portrait-thumb img, .portrait-thumb .wash { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border: 1px solid var(--line); border-radius: 4px; }
+.portrait-tools { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.portrait-tools textarea { width: 100%; font: 0.85rem var(--f-mono); }
+@media (max-width: 680px) { .portrait-row { grid-template-columns: 1fr; } .portrait-thumb { max-width: 160px; } }
 .wash .paper { fill: var(--bg); }
 .wash .ink { fill: var(--fg); }
 .wash .moss { fill: var(--accent); }
