@@ -465,8 +465,9 @@ def pool_schema() -> dict:
                 "pitch": {"type": "string", "description": "One line: who or what, and its part in the scene."},
                 "role": {"type": "string", "enum": [*ADVERSARY_ROLES, ""],
                          "description": "Adversaries only: their role per the adversary module. Empty otherwise."},
-                "count": {"type": "integer", "description": "Adversaries: how many (for Minions, groups the "
-                                                            "size of the party). Everything else: 1."},
+                "count": {"type": "integer", "description": "Adversaries: how many. For Minions, count GROUPS, "
+                                                            "each as many minions as there are PCs: one group is "
+                                                            "usually right. Everything else: 1."},
                 "existing_id": {"type": "integer", "description": "The id of the bible entry this reuses, or 0 "
                                                                   "for a new one."},
             }}}},
