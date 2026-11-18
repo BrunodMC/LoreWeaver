@@ -6,8 +6,27 @@
     <h1>Drafts to review</h1>
     <p class="muted">AI drafts waiting for you to promote, regenerate or discard. Hand-made drafts live in each list's Draft filter.</p>
   </div>
-  <a class="button" href="/generate">✦ Generate</a>
+  <div class="page-actions">
+    <a class="button" href="/encounters/new">Compose an encounter</a>
+    <a class="button" href="/generate">✦ Generate</a>
+  </div>
 </div>
+
+{% if composing %}
+<h2>Encounters being composed</h2>
+<ul class="inbox">
+  {% for c in composing %}
+  <li class="inbox-item">
+    <div class="inbox-title">
+      <span class="type-tag">Encounter</span>
+      <a href="/encounters/{{ c.id }}">{{ c.brief|truncate(80) }}</a>
+      <span class="badge badge-draft">{{ "picking a premise" if c.stage == "spines" else "picking the cast" }}</span>
+      <span class="hint">{{ c.updated_at|local_time }}</span>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
 
 {% if running %}
 <h2>Weaving now</h2>
@@ -37,6 +56,17 @@
     </div>
     {% if r.brief %}<p class="hint">Brief: {{ r.brief }}</p>{% endif %}
     {% if r.source and r.source.output.concept %}<p>{{ r.source.output.concept }}</p>{% endif %}
+    {% if item.members %}
+    <ul class="inbox-members">
+      {% for sub in item.members %}{% set se = sub.entity %}
+      <li>
+        <span class="type-tag">{{ entity_types[se.type].label }}</span>
+        <a href="/{{ se.type }}/{{ se.id }}">{{ se.name }}</a>
+        {% if sub.review.open_decisions %}<span class="badge badge-draft">⚠ {{ sub.review.open_decisions }} decision{{ "s" if sub.review.open_decisions != 1 }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>

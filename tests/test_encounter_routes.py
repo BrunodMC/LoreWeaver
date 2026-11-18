@@ -108,3 +108,67 @@ def test_drafting_nothing_is_refused(client, world):
     script(POOL)
     cid = composite_id(client.post("/encounters", data={"brief": "x", "action": "skip"}, follow_redirects=False))
     assert client.post(f"/encounters/{cid}/draft", data={}).status_code == 409
+
+
+def compose_and_draft(client, world, member_answer=None):
+    """A drafted composite: the sheet (linked to the ford) and one member. Returns (composite id, ids)."""
+    script(POOL)
+    cid = composite_id(client.post("/encounters", data={"brief": "x", "action": "skip"}, follow_redirects=False))
+    with closing(db.get_connection()) as conn:
+        key = next(m["key"] for m in db.get_composite(conn, cid)["pool"] if m["name"] == "Mud Skulkers")
+    sheet = drafted("Toll at the Ford", {"premise": "Pay or wade."})
+    sheet["proposed_links"] = [{"target_id": world["ford"], "direction": "from_new", "label": "takes place at",
+                                "party_knows": False, "why": "setting"}]
+    script(sheet, member_answer or drafted("Mud Skulkers", {"description": "Masked.", "role": "Skulk", "tier": "1"}))
+    client.post(f"/encounters/{cid}/draft", data={f"tick_{key}": "1"})
+    with closing(db.get_connection()) as conn:
+        comp = db.get_composite(conn, cid)
+        member = next(e for e in db.composite_members(conn, cid) if e["type"] == "adversary")
+    return cid, {"sheet": comp["encounter_id"], "member": member["id"]}
+
+
+def test_cast_panel_and_promote_all(client, world):
+    cid, ids = compose_and_draft(client, world)
+    page = client.get(f"/encounter/{ids['sheet']}")
+    assert "Promote all (2)" in page.text and "Mud Skulkers" in page.text
+
+    inbox = client.get("/drafts").text
+    assert inbox.count('class="inbox-item"') == 1 and "inbox-members" in inbox  # the member nests under it
+
+    client.post(f"/encounters/{cid}/promote-all")
+    with closing(db.get_connection()) as conn:
+        assert db.get_entity(conn, ids["sheet"])["status"] == "canon"
+        assert db.get_entity(conn, ids["member"])["status"] == "canon"
+        labels = {l["relation_label"] for l in db.links_for(conn, ids["sheet"])["outgoing"]}
+        assert labels == {"takes place at"}  # the proposed link was made
+        assert db.links_for(conn, ids["member"])["outgoing"][0]["relation_label"] == "appears in"
+
+
+def test_open_decisions_block_promote_all(client, world):
+    with closing(db.get_connection()) as conn:
+        todo = db.create_entity(conn, "arc", "Open threads", {"notes": "Who built the ford?"}, status="draft")
+        db.set_ai_context(conn, todo, True)
+    member = drafted("Mud Skulkers", {"description": "Masked.", "role": "Skulk", "tier": "1"})
+    member["open_threads_touched"] = [{"entry_id": todo, "thread": "Who built the ford?", "proposal": "Skulkers."}]
+    cid, ids = compose_and_draft(client, world, member)
+    page = client.get(f"/encounter/{ids['sheet']}")
+    assert "Promote all waits" in page.text
+    assert client.post(f"/encounters/{cid}/promote-all").status_code == 409
+    with closing(db.get_connection()) as conn:
+        assert db.get_entity(conn, ids["sheet"])["status"] == "draft"
+
+
+def test_discard_all_keeps_the_bible_entries(client, world):
+    cid, ids = compose_and_draft(client, world)
+    assert client.post(f"/encounters/{cid}/discard-all", follow_redirects=False).status_code == 303
+    with closing(db.get_connection()) as conn:
+        assert db.get_entity(conn, ids["sheet"]) is None and db.get_entity(conn, ids["member"]) is None
+        assert db.get_entity(conn, world["ford"]) is not None
+
+
+def test_inbox_lists_workspaces_being_composed(client, world):
+    script(POOL)
+    cid = composite_id(client.post("/encounters", data={"brief": "a crossing at dusk", "action": "skip"},
+                                   follow_redirects=False))
+    inbox = client.get("/drafts").text
+    assert "Encounters being composed" in inbox and f"/encounters/{cid}" in inbox and "picking the cast" in inbox

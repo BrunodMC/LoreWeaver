@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from .. import context, db, generation
+from .. import composite, context, db, generation
 from .entities import Conn, entity_or_404, entity_type_or_404, render
 from .generate import dm_only
 
@@ -36,8 +36,30 @@ async def inbox(request: Request, conn: Conn):
     """Every AI draft awaiting review, so nothing generated at 1 a.m. becomes forgotten furniture."""
     dm_only(request)
     return render(request, "drafts.html", {
-        "pending": generation.pending_drafts(conn), "running": generation.running_jobs(),
+        "pending": group_by_encounter(conn, generation.pending_drafts(conn)),
+        "running": generation.running_jobs(), "composing": composite.workspaces(conn),
     })
+
+
+def group_by_encounter(conn, pending: list[dict]) -> list[dict]:
+    """A composed encounter's member drafts nest under it, so the cast is reviewed as one scene."""
+    sheets = {}
+    for item in pending:
+        item["members"] = []
+        if item["entity"]["type"] == "encounter":
+            comp_id = db.composite_for_entity(conn, item["entity"]["id"])
+            comp = db.get_composite(conn, comp_id) if comp_id else None
+            if comp and comp["encounter_id"] == item["entity"]["id"]:
+                sheets[comp_id] = item
+    top = []
+    for item in pending:
+        comp_id = db.composite_for_entity(conn, item["entity"]["id"])
+        sheet = sheets.get(comp_id)
+        if sheet is not None and sheet is not item:
+            sheet["members"].append(item)
+        else:
+            top.append(item)
+    return top
 
 
 @router.get("/{type_key}/{entity_id}/versions/{version_id}", response_class=HTMLResponse)

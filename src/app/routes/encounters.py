@@ -221,6 +221,35 @@ async def retry(request: Request, composite_id: int, key: str, conn: Conn):
     return back(composite_id)
 
 
+def sheet_or_404(conn, comp: dict) -> dict:
+    sheet = db.get_entity(conn, comp["encounter_id"]) if comp["encounter_id"] else None
+    if sheet is None:
+        raise HTTPException(404, "This workspace has no encounter draft")
+    return sheet
+
+
+@router.post("/{composite_id}/promote-all")
+async def promote_all(request: Request, composite_id: int, conn: Conn):
+    dm_only(request)
+    sheet = sheet_or_404(conn, workspace_or_404(conn, composite_id))
+    try:
+        composite.promote_all(conn, sheet)
+    except composite.CompositeError as exc:
+        conflict(exc)
+    return RedirectResponse(f"/encounter/{sheet['id']}", status_code=303)
+
+
+@router.post("/{composite_id}/discard-all")
+async def discard_all(request: Request, composite_id: int, conn: Conn):
+    dm_only(request)
+    sheet = sheet_or_404(conn, workspace_or_404(conn, composite_id))
+    try:
+        composite.discard_all(conn, sheet)
+    except composite.CompositeError as exc:
+        conflict(exc)
+    return RedirectResponse("/drafts", status_code=303)
+
+
 @router.post("/{composite_id}/discard")
 async def discard(request: Request, composite_id: int, conn: Conn):
     """Throw away a workspace that hasn't been drafted yet. Drafted encounters are discarded as drafts."""

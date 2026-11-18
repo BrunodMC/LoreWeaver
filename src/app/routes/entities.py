@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import db, generation, knowledge, search as search_mod
+from .. import composite, db, generation, knowledge, search as search_mod
 from ..entity_types import ENTITY_TYPES, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -215,6 +215,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "entity": entity,
         "review": review,
         "reviewing": review is not None,
+        "cast": composite.cast_review(conn, entity) if not party_view and entity["type"] == "encounter" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),
         "statuses": STATUSES,

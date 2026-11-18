@@ -267,6 +267,58 @@ def retry_member(conn, composite_id: int, key: str) -> None:
     start_member(composite_id, member)
 
 
+# ── Reviewing the whole cast ───────────────────────────────────────────────
+
+def cast_review(conn, encounter: dict) -> dict | None:
+    """The cast panel for an encounter made by a composite (None for a hand-made or lone encounter).
+    Promote all is blocked while anything is still drafting or any draft has unsettled decisions:
+    promoting must never settle an open thread silently, and one button is the easiest way to."""
+    composite_id = db.composite_for_entity(conn, encounter["id"])
+    comp = db.get_composite(conn, composite_id) if composite_id else None
+    if comp is None or comp["encounter_id"] != encounter["id"]:
+        return None
+    state = progress(conn, comp)
+    drafts = [e for e in [encounter] + [r["entity"] for r in state["rows"] if r["state"] == "done"]
+              if e["status"] == "draft"]
+    blocked = []
+    for e in drafts:
+        review = generation.review_state(conn, e)
+        if review and review["open_decisions"]:
+            blocked.append({"entity": e, "open": review["open_decisions"]})
+    return {"comp": comp, "rows": state["rows"], "busy": state["busy"], "drafts": drafts, "blocked": blocked}
+
+
+def promote_all(conn, encounter: dict) -> int:
+    """Promote the encounter and its member drafts, each with all its proposed links (the review panel's
+    defaults). Returns how many entries were promoted."""
+    cast = cast_review(conn, encounter)
+    if cast is None:
+        raise CompositeError("This encounter wasn't composed with a cast.")
+    if cast["busy"]:
+        raise CompositeError("Some members are still being drafted.")
+    if cast["blocked"]:
+        raise CompositeError("Settle the open decisions first: " +
+                             ", ".join(b["entity"]["name"] for b in cast["blocked"]) + ".")
+    for entity in cast["drafts"]:
+        review = generation.review_state(conn, entity)
+        source = review["source"] if review else None
+        generation.promote(conn, entity, source["output"].get("proposed_links", []) if source else [])
+    return len(cast["drafts"])
+
+
+def discard_all(conn, encounter: dict) -> int:
+    """Delete the encounter and its member drafts (their texts stay in the generation history).
+    Entries already promoted, and reused bible entries, are left alone."""
+    cast = cast_review(conn, encounter)
+    if cast is None:
+        raise CompositeError("This encounter wasn't composed with a cast.")
+    if cast["busy"]:
+        raise CompositeError("Some members are still being drafted.")
+    for entity in cast["drafts"]:
+        db.delete_entity(conn, entity["id"])
+    return len(cast["drafts"])
+
+
 def workspaces(conn) -> list[dict]:
     """Encounters still being composed (not yet drafted), newest first, for the drafts inbox."""
     rows = conn.execute("SELECT * FROM composites WHERE stage IN ('spines', 'pool') "

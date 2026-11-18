@@ -1,0 +1,38 @@
+<section class="review-panel cast-panel">
+  <div class="page-head">
+    <strong>Cast</strong>
+    <a href="/encounters/{{ cast.comp.id }}" class="hint">the workspace</a>
+  </div>
+  <ul class="proposals">
+    {% for row in cast.rows %}{% set m = row.member %}
+    <li>
+      <span class="type-tag">{{ entity_types[m.type].label }}</span>
+      {% if row.entity %}<a href="/{{ row.entity.type }}/{{ row.entity.id }}">{{ row.entity.name }}</a>
+        <span class="badge badge-{{ row.entity.status }}">{{ row.entity.status }}</span>
+        {% if row.state == "existing" %}<span class="hint">from the bible</span>{% endif %}
+      {% else %}{{ m.name }} <span class="hint">{{ "drafting…" if row.state == "running" else "not drafted" }}</span>{% endif %}
+      {% for b in cast.blocked if row.entity and b.entity.id == row.entity.id %}
+        <span class="badge badge-draft">⚠ {{ b.open }} decision{{ "s" if b.open != 1 }}</span>
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if cast.drafts %}
+  {% if cast.blocked %}
+  <p class="callout">Promote all waits until every open decision is settled: {% for b in cast.blocked %}<a href="/{{ b.entity.type }}/{{ b.entity.id }}">{{ b.entity.name }}</a>{{ ", " if not loop.last }}{% endfor %}.</p>
+  {% elif cast.busy %}
+  <p class="hint">Some members are still being drafted.</p>
+  {% endif %}
+  <div class="form-actions">
+    <form method="post" action="/encounters/{{ cast.comp.id }}/promote-all" class="inline-form">
+      <button type="submit" class="primary"{% if cast.blocked or cast.busy %} disabled{% endif %}
+              title="Make the encounter and every member draft canon, with all their proposed links">Promote all ({{ cast.drafts|length }})</button>
+    </form>
+    <form method="post" action="/encounters/{{ cast.comp.id }}/discard-all" class="inline-form"
+          onsubmit="return confirm('Discard the encounter and its {{ cast.drafts|length - 1 }} member drafts? Their texts stay in the drafting history.')">
+      <button type="submit"{% if cast.busy %} disabled{% endif %}>Discard all</button>
+    </form>
+  </div>
+  <p class="hint">Or review each draft on its own page.</p>
+  {% endif %}
+</section>
