@@ -287,7 +287,8 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "portrait_style": portraits.style(conn) if not party_view and type_key in portraits.TYPES else "",
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
         "proposal": None if party_view else proposal_state(conn, etype, entity_id, request.query_params.get("kept")),
-        "death": None if party_view or type_key not in deaths.DEATH_TYPES else {
+        "statblock_of": deaths.person_of(conn, entity) if type_key == "adversary" and not party_view else None,
+        "death": None if party_view or (deaths.mortality(conn, entity) != "mortal" and not entity.get("deceased")) else {
             "ripple": deaths.ripple_status(conn, entity_id) if entity.get("deceased") else [],
             "candidates": deaths.ripple_candidates(conn, entity_id), "default_model": deaths.RIPPLE_MODEL},
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,

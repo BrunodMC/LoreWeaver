@@ -57,6 +57,8 @@ FIELD_HINTS: dict[tuple[str, str], str] = {
     ("location", "danger_or_mystery"): "What makes it worth visiting or dangerous. Secrets in ||bars||.",
     ("faction", "goals"): "Public aims, and hidden ones in ||bars||.",
     ("arc", "current_state"): "One line: where this stands right now.",
+    ("adversary", "individual"): "'One individual' for a single named being (a villain, a unique beast); 'A type' "
+                                 "for something there can be many of (a druid, a soldier, a swarm).",
     ("adversary", "description"): "What the party sees: look, sound, behaviour. Player-safe unless barred.",
     ("adversary", "motives_tactics"): "Short comma-separated verbs and aims, per the adversary module.",
     ("adversary", "thresholds"): "Major/severe, like 7/14, per the tier benchmarks.",

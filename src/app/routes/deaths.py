@@ -14,7 +14,10 @@ def mortal_or_404(request: Request, conn, type_key: str, entity_id: int) -> dict
     entity_type_or_404(type_key)
     if type_key not in deaths.DEATH_TYPES:
         raise HTTPException(404, "Only people and creatures can die")
-    return entity_or_404(conn, type_key, entity_id)
+    entity = entity_or_404(conn, type_key, entity_id)
+    if deaths.mortality(conn, entity) != "mortal" and not entity.get("deceased"):
+        raise HTTPException(409, "Only an individual can die (and one with an NPC page dies there)")
+    return entity
 
 
 def picked(form) -> set[int]:

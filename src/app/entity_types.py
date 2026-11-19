@@ -24,6 +24,9 @@ class EntityType:
 
 ENVIRONMENT_TYPES = ("Exploration", "Social", "Traversal", "Event")
 
+INDIVIDUAL = "One individual"
+INDIVIDUAL_OPTIONS = ("A type", INDIVIDUAL)
+
 ADVERSARY_ROLES = ("Bruiser", "Horde", "Leader", "Minion", "Ranged", "Skulk",
                    "Social", "Solo", "Standard", "Support")
 
@@ -77,6 +80,9 @@ ENTITY_TYPES: dict[str, EntityType] = {
         EntityType("adversary", "Adversary", "Adversaries", party_plural="Perils", fields=(
             Field("description", "Description"),
             Field("voice", "Voice & mannerisms", dm_only=True),
+            # One named being (a villain, a unique beast) or a kind there can be many of (a druid, a soldier).
+            # Empty reads as a type. Only an individual can die, and one with an NPC page dies there.
+            Field("individual", "Individual or type", "select", INDIVIDUAL_OPTIONS, dm_only=True),
             Field("tier", "Tier", "select", ("1", "2", "3", "4"), dm_only=True),
             Field("role", "Role", "select", ADVERSARY_ROLES, dm_only=True),
             Field("motives_tactics", "Motives & tactics", "text", dm_only=True),

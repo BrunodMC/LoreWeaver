@@ -104,6 +104,9 @@
   {% if secrecy %}{% include "_secrecy_panel.html" %}{% endif %}
   {% if proposal %}{% include "_proposal_panel.html" %}{% endif %}
   {% if death %}{% include "_death_panel.html" %}{% endif %}
+  {% if statblock_of %}
+  <p class="hint statblock-of">The stat block of <a href="/npc/{{ statblock_of.id }}">{{ statblock_of.name }}</a>{% if statblock_of.deceased %}: ✝ deceased{% if statblock_of.deceased == "secret" %} (the party doesn't know){% endif %}{% else %}. Their life and death are kept on that page{% endif %}.</p>
+  {% endif %}
 
   {% if etype.key in portrait_types %}
   <details class="ai-notes portrait-panel">

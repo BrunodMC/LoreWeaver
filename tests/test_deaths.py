@@ -180,3 +180,43 @@ def test_only_the_mortal_can_die(client, ids):
 
 def test_players_cannot_kill_anyone(player, ids):
     assert player.post(f"/npc/{ids['kreil']}/deceased", data={"how": "x"}).status_code == 403
+
+
+# ── Individuals and types ──────────────────────────────────────────────────
+
+def test_only_an_individual_adversary_without_a_person_can_die(conn):
+    druid = db.create_entity(conn, "adversary", "Earth Druid", {})
+    soldier = db.create_entity(conn, "adversary", "Soldier", {"individual": "A type"})
+    brood = db.create_entity(conn, "adversary", "The brood-mother", {"individual": "One individual"})
+    wraith_npc = db.create_entity(conn, "npc", "The Fanewraith", {})
+    wraith = db.create_entity(conn, "adversary", "The Fanewraith", {"individual": "One individual"})
+    db.add_link(conn, wraith, wraith_npc, "stat block of")
+    named = db.create_entity(conn, "adversary", "Soren, armed", {"individual": "One individual"})
+    soren = db.create_entity(conn, "npc", "Soren Maelir", {})
+    db.add_link(conn, soren, named, "fights with the stat block")  # a stat-block relation, different names
+    get = lambda i: db.get_entity(conn, i)
+    assert [deaths.mortality(conn, get(i)) for i in (druid, soldier, brood, wraith, named, wraith_npc)] == \
+        ["type", "type", "mortal", "person", "person", "mortal"]
+    assert deaths.person_of(conn, get(wraith))["id"] == wraith_npc
+
+
+def test_the_page_follows_mortality(client):
+    with closing(db.get_connection()) as conn:
+        druid = db.create_entity(conn, "adversary", "Earth Druid", {})
+        brood = db.create_entity(conn, "adversary", "The brood-mother", {"individual": "One individual"})
+        person = db.create_entity(conn, "npc", "The Fanewraith", {})
+        wraith = db.create_entity(conn, "adversary", "The Fanewraith", {"individual": "One individual"})
+        db.add_link(conn, wraith, person, "stat block of")
+    assert "Mark deceased" not in client.get(f"/adversary/{druid}").text
+    assert client.post(f"/adversary/{druid}/deceased", data={}).status_code == 409
+    assert "Mark deceased" in client.get(f"/adversary/{brood}").text
+    page = client.get(f"/adversary/{wraith}").text
+    assert "Mark deceased" not in page and "The stat block of" in page and "kept on that page" in page
+    client.post(f"/npc/{person}/deceased", data={"how": "Fell.", "party_knows": "1"})
+    assert "✝ deceased" in client.get(f"/adversary/{wraith}").text
+
+
+def test_the_generator_is_asked_individual_or_type():
+    from src.app import context
+    prop = context.output_schema("adversary")["properties"]["fields"]["properties"]["individual"]
+    assert prop["enum"] == ["A type", "One individual"] and "named being" in prop["description"]

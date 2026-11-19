@@ -8,10 +8,33 @@ on. Like every secret here, a death the party didn't witness stays hidden from t
 import sqlite3
 
 from . import db, mentions, proposals
+from .entity_types import INDIVIDUAL
 
 DEATH_TYPES = ("npc", "adversary", "pc")
 RIPPLE_TYPES = ("npc", "faction", "arc", "location", "item", "adversary")  # not PCs (players own them) or logs
 RIPPLE_MODEL = "sonnet"  # many small calls: the strong model would be slow and heavy for nudges
+
+
+def person_of(conn: sqlite3.Connection, adversary: dict) -> dict | None:
+    """The NPC an individual adversary is the stat block of: linked to it, and either the same name or a
+    'stat block' relation. Its life and death are kept on the person, not on the numbers."""
+    links = db.links_for(conn, adversary["id"])
+    for link in links["outgoing"] + links["incoming"]:
+        other = db.get_entity(conn, link["other_id"])
+        if other and other["type"] == "npc" and (
+                other["name"].casefold() == adversary["name"].casefold()
+                or "stat block" in link["relation_label"].casefold()):
+            return other
+    return None
+
+
+def mortality(conn: sqlite3.Connection, entity: dict) -> str:
+    """'mortal': can be marked deceased here. 'person': dies on its NPC page. 'type': a kind, not a someone."""
+    if entity["type"] != "adversary":
+        return "mortal" if entity["type"] in DEATH_TYPES else "type"
+    if entity["fields"].get("individual") != INDIVIDUAL:
+        return "type"
+    return "person" if person_of(conn, entity) else "mortal"
 
 
 def mark(conn: sqlite3.Connection, entity: dict, how: str, party_knows: bool) -> None:
