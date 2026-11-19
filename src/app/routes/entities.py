@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import audit, composite, db, generation, knowledge, ornament, portraits, search as search_mod, statblock
+from .. import (audit, composite, db, generation, knowledge, llm, ornament, portraits, proposals,
+               search as search_mod, statblock)
 from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
 def local_time(utc_value: str) -> str:
@@ -41,6 +42,8 @@ templates.env.globals["statblock_mechanics"] = statblock.mechanics
 templates.env.globals["mechanical_fields"] = statblock.MECHANICAL
 templates.env.filters["lore"] = knowledge.render
 templates.env.filters["local_time"] = local_time
+templates.env.globals["word_diff"] = proposals.word_diff
+templates.env.globals["model_choices"] = llm.MODEL_CHOICES
 
 router = APIRouter()
 
@@ -250,6 +253,15 @@ def secrecy_state(conn: sqlite3.Connection, entity_id: int, just_applied: str | 
             "failed": failed}
 
 
+def proposal_state(conn: sqlite3.Connection, etype: EntityType, entity_id: int, kept: str | None) -> dict:
+    """The proposal panel: a call running, an open proposal to rule on, or the "Time passes…" form."""
+    kind = proposals.KINDS["time_passes"]
+    labels = {f.key: f.label for f in etype.fields}
+    return {"task": proposals.task_for(entity_id), "open": proposals.latest_open(conn, entity_id),
+            "time_passes": etype.key in kind.types, "default_model": kind.default_model, "labels": labels,
+            "kept": [labels.get(k, k) for k in (kept or "").split(",") if k]}
+
+
 @router.get("/{type_key}/{entity_id}", response_class=HTMLResponse)
 async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
     etype = entity_type_or_404(type_key)
@@ -274,6 +286,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "portrait_prompt": portraits.prompt(conn, entity) if not party_view and type_key in portraits.TYPES else "",
         "portrait_style": portraits.style(conn) if not party_view and type_key in portraits.TYPES else "",
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
+        "proposal": None if party_view else proposal_state(conn, etype, entity_id, request.query_params.get("kept")),
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),

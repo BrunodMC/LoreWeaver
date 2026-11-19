@@ -1,0 +1,63 @@
+{% set url = "/" ~ etype.key ~ "/" ~ entity.id %}
+{% set p = proposal %}
+{% if p.task and p.task.status == "running" and not p.open %}
+  {% with task = p.task %}{% include "_proposal_task.html" %}{% endwith %}
+{% elif p.open %}{% set o = p.open %}
+<section class="review-panel proposal-panel">
+  <strong>Time passes: proposed changes</strong>
+  <span class="hint">{{ o.request.elapsed }}{% if o.request.model_choice in model_choices %} · {{ model_choices[o.request.model_choice][1].split(":")[0] }}{% endif %}</span>
+  {% if o.request.events %}<p class="hint">Meanwhile: {{ o.request.events }}</p>{% endif %}
+  {% if o.summary %}<p>{{ o.summary }}</p>{% endif %}
+  {% if o.changes or o.links %}
+  <p class="hint">Untick anything you don't want. Struck-through text goes; highlighted text comes in.</p>
+  <form method="post" action="{{ url }}/proposals/{{ o.id }}/apply">
+    <ul class="decisions proposal-changes">
+      {% for key, text in o.changes.items() %}
+      <li>
+        <label class="checkbox"><input type="checkbox" name="field" value="{{ key }}" checked>
+          <strong>{{ p.labels.get(key, key) }}</strong></label>
+        {% if o.reasons.get(key) %}<p class="hint">{{ o.reasons[key] }}</p>{% endif %}
+        <div class="proposal-diff">{{ word_diff(o.base.get(key, ""), text) }}</div>
+      </li>
+      {% endfor %}
+      {% for l in o.links %}
+      <li>
+        <label class="checkbox"><input type="checkbox" name="link" value="{{ loop.index0 }}" checked>
+          New link: {% if l.outgoing %}{{ entity.name }} <em>{{ l.label }}</em> <a href="/{{ l.target_type }}/{{ l.target_id }}">{{ l.target }}</a>{% else %}<a href="/{{ l.target_type }}/{{ l.target_id }}">{{ l.target }}</a> <em>{{ l.label }}</em> {{ entity.name }}{% endif %}
+          {% if l.party_knows %}<span class="badge badge-edit">party knows</span>{% endif %}</label>
+        {% if l.why %}<p class="hint">{{ l.why }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if o.dm_notes %}<details class="proposal-notes"><summary>Claude's notes</summary><p>{{ o.dm_notes }}</p></details>{% endif %}
+    <div class="form-actions"><button type="submit" class="primary">Apply ticked</button></div>
+  </form>
+  {% else %}
+  <p>Nothing to change: this entry still holds.</p>
+  {% if o.dm_notes %}<p class="hint">{{ o.dm_notes }}</p>{% endif %}
+  {% endif %}
+  <form method="post" action="{{ url }}/proposals/{{ o.id }}/dismiss" class="inline-form">
+    <button type="submit" class="link-action">Dismiss the proposal</button>
+  </form>
+</section>
+{% elif p.time_passes %}
+{% if p.task and p.task.status == "failed" %}{% with task = p.task %}{% include "_proposal_task.html" %}{% endwith %}{% endif %}
+<details class="time-passes"{% if p.task and p.task.status == "failed" %} open{% endif %}>
+  <summary>Time passes…</summary>
+  <form method="post" action="{{ url }}/time-passes" class="entity-form">
+    <p class="hint">Claude proposes how this {{ etype.label }} has moved on. Nothing changes until you apply it.</p>
+    <label>How long, in-game
+      <input type="text" name="elapsed" required placeholder="three weeks, the whole winter, a year…"></label>
+    <label>What happened meanwhile <span class="hint">(optional)</span>
+      <textarea name="events" rows="3" placeholder="The blight reached the river towns; the party never delivered the box…"></textarea></label>
+    <label>Anything to steer it <span class="hint">(optional)</span>
+      <input type="text" name="notes" placeholder="Keep her loyal, but make it cost her."></label>
+    <label>Model
+      <select name="model">{% for key, choice in model_choices.items() %}<option value="{{ key }}"{% if key == p.default_model %} selected{% endif %}>{{ choice[1] }}</option>{% endfor %}</select></label>
+    <div class="form-actions"><button type="submit" class="primary">Propose changes</button></div>
+  </form>
+</details>
+{% endif %}
+{% if p.kept %}
+<p class="callout">You edited {{ p.kept|join(", ") }} after the proposal was made, so {{ "those were" if p.kept|length > 1 else "it was" }} left as you wrote {{ "them" if p.kept|length > 1 else "it" }}.</p>
+{% endif %}

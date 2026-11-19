@@ -8,7 +8,7 @@ import json
 import sqlite3
 from datetime import date
 
-from . import composite, db, generation
+from . import composite, db, generation, proposals
 
 VOICED_TYPES = ("npc", "adversary")
 
@@ -82,8 +82,9 @@ def gather(conn: sqlite3.Connection, today: date | None = None) -> dict:
         "unfiled": db.reveals(conn, None),
         "composing": composite.workspaces(conn),
         "audits": open_audits(conn),
+        "proposals": proposals.all_open(conn),
         "threads": open_threads(conn, session["entity"]["id"] if session else None),
         "voiceless": voiceless(conn),
     }
-    brief["desk"] = len(brief["drafts"]) + len(brief["unfiled"]) + len(brief["composing"]) + len(brief["audits"])
+    brief["desk"] = sum(len(brief[k]) for k in ("drafts", "unfiled", "composing", "audits", "proposals"))
     return brief

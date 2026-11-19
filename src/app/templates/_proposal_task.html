@@ -1,0 +1,13 @@
+{% if task.status == "failed" %}
+<div id="proposal-task" class="job-status job-failed">
+  <p class="error">The proposal didn't come through.</p>
+  <pre class="job-error">{{ task.error }}</pre>
+  <p class="hint">Open “Time passes…” below to try again.</p>
+</div>
+{% else %}
+<div id="proposal-task" class="job-status"
+     hx-get="{{ url }}/proposals/status" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p><span class="spinner" aria-hidden="true"></span> Letting time pass… {{ task.elapsed }}s</p>
+  <p class="hint">{{ model_choices[task.model][1].split(":")[0] if task.model in model_choices else "Claude" }} is reading the entry against the whole bible.</p>
+</div>
+{% endif %}

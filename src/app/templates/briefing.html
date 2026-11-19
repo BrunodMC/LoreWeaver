@@ -40,6 +40,13 @@
     <span class="badge badge-draft">{{ "picking a premise" if c.stage == "spines" else "picking the cast" }}</span>
   </div></li>
   {% endfor %}
+  {% for pr in b.proposals %}
+  <li class="inbox-item"><div class="inbox-title">
+    <span class="type-tag">Time passes</span>
+    <a href="/{{ pr.entity_type }}/{{ pr.entity_id }}">{{ pr.entity_name }}</a>
+    <span class="badge badge-draft">{{ pr.changes|length }} change{{ "s" if pr.changes|length != 1 }} proposed</span>
+  </div>{% if pr.summary %}<p class="hint">{{ pr.summary }}</p>{% endif %}</li>
+  {% endfor %}
   {% for a in b.audits %}
   <li class="inbox-item"><div class="inbox-title">
     <span class="type-tag">{{ a.kind }} check</span>

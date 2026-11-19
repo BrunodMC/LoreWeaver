@@ -441,3 +441,11 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
 .login { max-width: 26rem; margin: 3rem auto; }
 .login-form { display: grid; gap: 10px; }
 .login-form input[type="password"] { font-size: 1rem; padding: 8px 10px; }
+
+/* ── Proposals (Time passes…) ──────────────────────────────────────────── */
+.proposal-diff { margin: 6px 0 2px; padding: 8px 10px; border-left: 2px solid var(--line); background: var(--bg); white-space: pre-wrap; line-height: 1.5; }
+.proposal-diff del { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.proposal-diff ins { text-decoration: none; background: color-mix(in srgb, var(--accent, #6fb3a4) 22%, transparent); border-radius: 2px; }
+.time-passes { margin: 14px 0; }
+.time-passes > summary { cursor: pointer; font-weight: 600; }
+.proposal-notes { margin: 8px 0; }

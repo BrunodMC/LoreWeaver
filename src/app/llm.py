@@ -17,6 +17,13 @@ from typing import Protocol
 DEFAULT_MODEL = "claude-opus-5-5"  # pinned, not the "opus" alias, so an upgrade is a decision, not a surprise
 DEFAULT_EFFORT = "medium"          # tested: half the time of high, no loss of grounding
 DEEP_EFFORT = "high"               # the "think harder" option: slower, bolder connections
+# The models a GM can pick per call where cost matters (proposals, ripples): the strong default is slow and
+# heavy on the subscription; a consequence that only nudges one line rarely needs it.
+MODEL_CHOICES = {
+    "opus": ("claude-opus-5-5", "Opus: deepest, slowest"),
+    "sonnet": ("claude-sonnet-5-5", "Sonnet: balanced"),
+    "haiku": ("claude-haiku-5-5", "Haiku: quick and light"),
+}
 DEFAULT_TIMEOUT = 300              # seconds; prep time, but a hung subprocess shouldn't hang the app forever
 
 
