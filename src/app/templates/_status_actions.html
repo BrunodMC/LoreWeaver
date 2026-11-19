@@ -21,6 +21,10 @@
           hx-target="#status-actions" hx-swap="outerHTML">Mark unknown</button>
   <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/reveal-check"
           title="Check what the party can see for leaked secrets">Check for leaks</button>
+  {% if stale is defined and stale and stale.available %}
+  <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/stale-check"
+          title="Find hidden passages the party has already learned (in play, or from text they can see)">Find stale secrets</button>
+  {% endif %}
   {% else %}
   <span class="badge badge-unknown">unknown to party</span>
   <button type="button" hx-post="/{{ etype.key }}/{{ entity.id }}/reveal-check"

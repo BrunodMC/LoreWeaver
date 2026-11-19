@@ -114,7 +114,7 @@ def apply(conn, audit: dict, ticked: set[str]) -> list[str]:
         try:
             kind.apply(conn, entity, finding)
             state[finding["key"]] = "accepted"
-        except knowledge.CannotBar as exc:
+        except (knowledge.CannotBar, knowledge.PassageGone) as exc:
             state[finding["key"]] = "failed"
             failures.append(str(exc))
     _close(conn, audit["id"], state)
@@ -266,7 +266,107 @@ def secrecy_apply(conn, entity: dict, finding: dict) -> None:
     db.update_entity(conn, entity["id"], entity["name"], fields)
 
 
+# ── The stale-secrets audit ────────────────────────────────────────────────
+# The other direction: barred passages the party has in fact learned (in play, or from text they can see
+# elsewhere) but that were never unbarred. Revealing is the costly mistake here, so findings come
+# unticked and need cited evidence; applying one is an ordinary passage reveal, logged for the session.
+
+STALE_MODEL = None  # the strong default: a wrong "they know this" reveals a secret
+
+STALE_INSTRUCTIONS = """The passages below are the parts of this entry still hidden from the players (||barred||), though the \
+entry itself is known to them. Some may be stale: the party has in fact learned them, in play or from \
+text they can already see, and nobody unbarred them.
+
+Find only passages the party has DEMONSTRABLY learned. Evidence must be concrete and citable: a session \
+entry saying they saw, heard or were told it; a logged reveal; or the unbarred text of an entry or a \
+link marked "party knows" that states the same fact. A guess the players could make, or something \
+they're likely to work out, is not evidence. An empty list is the usual, good answer.
+
+For each: the field, the passage quoted EXACTLY as it appears between the bars, the evidence (name \
+the entry), and "clear" when the evidence states it outright, "likely" when it only strongly implies it."""
+
+
+def stale_subject(conn, entity: dict) -> Subject:
+    etype = ENTITY_TYPES[entity["type"]]
+    fields = {}
+    if db.visible_to_party(entity):
+        for f in etype.fields:
+            text = entity["fields"].get(f.key, "")
+            if not f.dm_only and knowledge.secret_passages(text):
+                fields[f.key] = (f.label, text)
+    rows = conn.execute("SELECT entity_name, field, text FROM reveals ORDER BY id").fetchall()
+    log = [f"- {r['entity_name']}{' · ' + r['field'] if r['field'] else ''}: {r['text'] or '(the whole entry)'}"
+           for r in rows]
+    return Subject(entity, fields, log)
+
+
+def stale_prompt(subject: Subject) -> str:
+    lines = [STALE_INSTRUCTIONS, "", f"Entry: {context.ref(subject.entity)}"]
+    for key, (label, text) in subject.fields.items():
+        lines.append(f"[{key}] {label}, hidden passages:")
+        lines += [f"  - {knowledge.untease(p).strip()}" for p in knowledge.secret_passages(text)]
+    lines += ["", "Reveals logged so far:", *(subject.extra or ["(none)"])]
+    return "\n".join(lines)
+
+
+def stale_schema(subject: Subject) -> dict:
+    return {
+        "type": "object", "additionalProperties": False, "required": ["findings"],
+        "properties": {"findings": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["field", "passage", "evidence", "certainty"],
+            "properties": {
+                "field": {"type": "string", "enum": list(subject.fields)},
+                "passage": {"type": "string", "description": "The hidden passage, copied exactly, without the bars."},
+                "evidence": {"type": "string", "description": "Where the party learned it: name the entry and say how."},
+                "certainty": {"type": "string", "enum": ["clear", "likely"]},
+            }}}},
+    }
+
+
+def _same(a: str, b: str) -> bool:
+    return " ".join(knowledge.untease(a).split()) == " ".join(knowledge.untease(b).split())
+
+
+def stale_check(data: dict, subject: Subject) -> tuple[list[dict], list[str]]:
+    findings, problems, seen = [], [], set()
+    for raw in data.get("findings") or []:
+        key, passage = raw.get("field"), context.clean(raw.get("passage", "")).strip(knowledge.MARKER).strip()
+        if key not in subject.fields:
+            problems.append(f"Finding in unknown field {key!r}.")
+            continue
+        label, text = subject.fields[key]
+        match = next((p for p in knowledge.secret_passages(text) if _same(p, passage)), None)
+        if match is None:
+            problems.append(f"{passage!r} isn't one of the hidden passages of {label}. Copy it exactly.")
+            continue
+        if (key, match) in seen:
+            continue
+        seen.add((key, match))
+        certainty = raw.get("certainty") if raw.get("certainty") in ("clear", "likely") else "likely"
+        findings.append({"field": key, "field_label": label, "quote": knowledge.untease(match).strip(),
+                         "passage": match, "severity": certainty,
+                         "reason": context.clean(raw.get("evidence", ""))})
+    return findings, problems
+
+
+def stale_apply(conn, entity: dict, finding: dict) -> None:
+    """Unbar the passage (found afresh: earlier reveals shift the positions) and log the reveal."""
+    if not db.visible_to_party(entity):
+        raise knowledge.PassageGone("The entry itself isn't known to the party any more.")
+    text = entity["fields"].get(finding["field"], "")
+    passages = knowledge.secret_passages(text)
+    index = next((i for i, p in enumerate(passages) if _same(p, finding["passage"])), None)
+    if index is None:
+        raise knowledge.PassageGone(f"“{finding['quote']}” changed since the check; reveal it by hand.")
+    new_text, revealed = knowledge.reveal_passage(text, index, knowledge.passage_tag(passages[index]))
+    db.update_entity(conn, entity["id"], entity["name"], dict(entity["fields"], **{finding["field"]: new_text}))
+    db.record_reveal(conn, entity, finding["field_label"], revealed)
+
+
 KINDS: dict[str, Kind] = {
     "secrecy": Kind("secrecy", "Secrecy check", SECRECY_MODEL, secrecy_subject, secrecy_prompt, secrecy_schema,
                     secrecy_check, secrecy_apply),
+    "stale": Kind("stale", "Stale secrets", STALE_MODEL, stale_subject, stale_prompt, stale_schema,
+                  stale_check, stale_apply),
 }

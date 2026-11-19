@@ -1,0 +1,13 @@
+{% if task.status == "failed" %}
+<div id="stale-task" class="job-status job-failed">
+  <p class="error">The stale-secrets check didn't come through.</p>
+  <pre class="job-error">{{ task.error }}</pre>
+  <form method="post" action="{{ url }}/stale-check" class="inline-form"><button type="submit">Check again</button></form>
+</div>
+{% else %}
+<div id="stale-task" class="job-status"
+     hx-get="{{ url }}/stale-check/status" hx-trigger="every 2s" hx-swap="outerHTML">
+  <p><span class="spinner" aria-hidden="true"></span> Looking for secrets the party already knows… {{ task.elapsed }}s</p>
+  <p class="hint">Claude checks each hidden passage against the sessions, the reveals and what the party can see.</p>
+</div>
+{% endif %}

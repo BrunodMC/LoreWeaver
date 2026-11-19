@@ -37,6 +37,28 @@ async def check_status(request: Request, type_key: str, entity_id: int, conn: Co
     return render(request, "_audit_task.html", {"task": task, "url": f"/{type_key}/{entity_id}"})
 
 
+@router.post("/{type_key}/{entity_id}/stale-check")
+async def start_stale_check(request: Request, type_key: str, entity_id: int, conn: Conn):
+    """Look for secrets the party has already learned but that are still barred."""
+    dm_only(request)
+    entity_type_or_404(type_key)
+    entity_or_404(conn, type_key, entity_id)
+    open_audit = audit.latest_open(conn, "stale", entity_id)
+    if open_audit:
+        audit.dismiss(conn, open_audit)
+    audit.start("stale", entity_id)
+    return refresh(request, f"/{type_key}/{entity_id}")
+
+
+@router.get("/{type_key}/{entity_id}/stale-check/status", response_class=HTMLResponse)
+async def stale_status(request: Request, type_key: str, entity_id: int):
+    dm_only(request)
+    task = audit.task_for("stale", entity_id)
+    if task is None or task.status != "running":
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return render(request, "_stale_task.html", {"task": task, "url": f"/{type_key}/{entity_id}"})
+
+
 def open_audit_or_404(conn, entity_id: int, audit_id: int) -> dict:
     found = audit.get(conn, audit_id)
     if found is None or found["entity_id"] != entity_id or found["status"] != "open":

@@ -1,0 +1,34 @@
+{% set url = "/" ~ etype.key ~ "/" ~ entity.id %}
+{% if stale.task and stale.task.status in ("running", "failed") and not stale.audit %}
+  {% with task = stale.task %}{% include "_stale_task.html" %}{% endwith %}
+{% elif stale.audit %}{% set a = stale.audit %}
+<section class="review-panel stale-panel">
+  <strong>Stale secrets</strong>
+  {% if a.findings %}
+  <p class="hint">Hidden passages the party seems to have learned already. Nothing is ticked: tick only what you
+    agree they know. Each one you reveal is logged for the session.</p>
+  <form method="post" action="{{ url }}/audits/{{ a.id }}/apply">
+    <ul class="decisions">
+      {% for f in a.findings %}
+      <li>
+        <label class="checkbox"><input type="checkbox" name="finding" value="{{ f.key }}">
+          <span class="badge {{ 'badge-draft' if f.severity == 'clear' else 'badge-edit' }}">{{ f.severity }}</span>
+          {{ f.field_label }}: “{{ f.quote }}”</label>
+        <p class="hint">{{ f.reason }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="form-actions"><button type="submit" name="action" value="unbar" class="primary">Reveal ticked</button></div>
+  </form>
+  {% else %}
+  <p>Every hidden passage still looks hidden from the party.</p>
+  {% endif %}
+  <form method="post" action="{{ url }}/audits/{{ a.id }}/dismiss" class="inline-form">
+    <button type="submit" class="link-action">Dismiss the check</button>
+  </form>
+</section>
+{% endif %}
+{% if stale.failed %}
+<p class="callout">Couldn't reveal these automatically (they changed since the check); use the eye on the passage instead:
+  {% for f in stale.failed %}“{{ f.quote }}” ({{ f.field_label }}){{ "; " if not loop.last }}{% endfor %}.</p>
+{% endif %}

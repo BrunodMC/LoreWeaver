@@ -247,10 +247,22 @@ def secrecy_state(conn: sqlite3.Connection, entity_id: int, just_applied: str | 
     failed = []
     if just_applied and just_applied.isdigit():
         settled = audit.get(conn, int(just_applied))
-        if settled and settled["entity_id"] == entity_id:
+        if settled and settled["entity_id"] == entity_id and settled["kind"] == "secrecy":
             failed = [f for f in settled["findings"] if settled["state"].get(f["key"]) == "failed"]
     return {"task": audit.task_for("secrecy", entity_id), "audit": audit.latest_open(conn, "secrecy", entity_id),
             "failed": failed}
+
+
+def stale_state(conn: sqlite3.Connection, entity: dict, just_applied: str | None) -> dict | None:
+    """The stale-secrets check: offered on known entries that still have hidden passages."""
+    entity_id = entity["id"]
+    failed = []
+    if just_applied and just_applied.isdigit():
+        settled = audit.get(conn, int(just_applied))
+        if settled and settled["entity_id"] == entity_id and settled["kind"] == "stale":
+            failed = [f for f in settled["findings"] if settled["state"].get(f["key"]) == "failed"]
+    return {"task": audit.task_for("stale", entity_id), "audit": audit.latest_open(conn, "stale", entity_id),
+            "failed": failed, "available": bool(audit.stale_subject(conn, entity).fields)}
 
 
 def proposal_state(conn: sqlite3.Connection, etype: EntityType, entity_id: int, kept: str | None) -> dict:
@@ -286,6 +298,7 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "portrait_prompt": portraits.prompt(conn, entity) if not party_view and type_key in portraits.TYPES else "",
         "portrait_style": portraits.style(conn) if not party_view and type_key in portraits.TYPES else "",
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
+        "stale": None if party_view else stale_state(conn, entity, request.query_params.get("audit")),
         "proposal": None if party_view else proposal_state(conn, etype, entity_id, request.query_params.get("kept")),
         "statblock_of": deaths.person_of(conn, entity) if type_key == "adversary" and not party_view else None,
         "death": None if party_view or (deaths.mortality(conn, entity) != "mortal" and not entity.get("deceased")) else {
