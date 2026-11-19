@@ -63,12 +63,18 @@ def prompt(conn, entity: dict) -> str:
     fields = entity["fields"]
     lines = [style(conn), ""]
     role = knowledge.party_text(fields.get("ancestry_role", ""))
+    if not role and entity["type"] == "pc":  # a PC's role is spread over ancestry, class and subclass
+        parts = (knowledge.party_text(fields.get(k, "")).strip() for k in ("ancestry", "class", "subclass"))
+        role = " · ".join(p for p in parts if p)
     if role:
         lines.append(f"Subject: {role}.")
     for key in ("appearance", "description"):
         seen = knowledge.party_text(fields.get(key, ""))
         if seen:
             lines.append(f"Appearance: {seen}")
+    gear = knowledge.party_text(fields.get("equipment", ""))
+    if gear:
+        lines.append(f"Equipment: {gear}")
     if fields.get("gender"):
         lines.append(f"Gender: {knowledge.party_text(fields['gender'])}.")
     return "\n".join(line for line in lines).strip()

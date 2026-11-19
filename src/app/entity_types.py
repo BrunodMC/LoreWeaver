@@ -43,6 +43,7 @@ ENTITY_TYPES: dict[str, EntityType] = {
             Field("level", "Level", "number"),
             Field("experiences", "Experiences", "text"),
             Field("appearance", "Appearance"),
+            Field("equipment", "Equipment"),  # worn and wielded gear; kept apart so loot doesn't rewrite a face
             Field("background", "Background"),
             Field("connections", "Connections"),
             Field("notes", "Notes"),

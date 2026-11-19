@@ -53,3 +53,13 @@ def test_the_prompt_holds_the_shared_style_and_no_secrets(client):
     assert "brand" not in prompt and "smuggler" not in prompt
     client.post("/settings/portrait-style", data={"style": "Ink and watercolour field sketch.", "next": f"/npc/{mara}"})
     assert "Ink and watercolour field sketch." in client.get(f"/npc/{mara}").text
+
+
+def test_a_pc_prompt_names_ancestry_class_and_gear(client):
+    with closing(db.get_connection()) as conn:
+        pc = db.create_entity(conn, "pc", "Wren", {
+            "ancestry": "Elf", "class": "Seraph", "subclass": "Winged Sentinel",
+            "equipment": "A round shield. ||A cursed ring.||"})
+        prompt = portraits.prompt(conn, db.get_entity(conn, pc))
+    assert "Subject: Elf · Seraph · Winged Sentinel." in prompt
+    assert "Equipment: A round shield." in prompt and "cursed" not in prompt
