@@ -1,6 +1,6 @@
 import sqlite3
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
@@ -207,7 +207,8 @@ async def list_view(request: Request, type_key: str, conn: Conn, status: str | N
 @router.get("/{type_key}/new", response_class=HTMLResponse)
 async def new_form(request: Request, type_key: str):
     etype = entity_type_or_404(type_key)
-    return render_form(request, etype, None, {"name": "", "status": "canon", "known_to_party": int(etype.default_known), "fields": {}})
+    fields = {"session_date": date.today().isoformat()} if type_key == "session" else {}  # usually written that night
+    return render_form(request, etype, None, {"name": "", "status": "canon", "known_to_party": int(etype.default_known), "fields": fields})
 
 
 @router.post("/{type_key}")

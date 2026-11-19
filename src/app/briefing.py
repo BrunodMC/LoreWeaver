@@ -50,12 +50,17 @@ def open_threads(conn: sqlite3.Connection, latest_session_id: int | None) -> lis
 
 
 def voiceless(conn: sqlite3.Connection) -> list[dict]:
-    """Canon faces the party has met, with nothing written on how to play them."""
+    """Canon faces the party has actually met, with nothing written on how to play them. Met means
+    linked to a session entry (it appeared in one) or straight to a PC: knowing OF someone (a god,
+    a distant archmage) doesn't put them across the table."""
     marks = ",".join("?" * len(VOICED_TYPES))
     rows = conn.execute(f"SELECT * FROM entities WHERE type IN ({marks}) AND status = 'canon' "
                         f"AND known_to_party = 1", VOICED_TYPES).fetchall()
     faces = [db.entity_from_row(r) for r in rows]
-    faces = [e for e in faces if not e["fields"].get("voice", "").strip()]
+    meeting_places = {r[0] for r in conn.execute(
+        "SELECT id FROM entities WHERE type IN ('session', 'pc') AND status != 'archived'")}
+    met = _neighbours(conn, meeting_places)
+    faces = [e for e in faces if e["id"] in met and not e["fields"].get("voice", "").strip()]
     return sorted(faces, key=lambda e: (e["type"], db.natural_key(e["name"])))
 
 

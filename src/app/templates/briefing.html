@@ -70,7 +70,7 @@
 
 <h2>Faces without a voice</h2>
 {% if b.voiceless %}
-<p class="muted">Known to the party, canon, and nothing written on how to play them.</p>
+<p class="muted">Characters the party has met (in a session entry, or linked to a PC) with nothing written on how to play them.</p>
 <ul class="inbox briefing-faces">
   {% for e in b.voiceless %}
   <li class="inbox-item"><div class="inbox-title">
@@ -81,6 +81,6 @@
   {% endfor %}
 </ul>
 {% else %}
-<p class="muted">Every face the party has met has a voice.</p>
+<p class="muted">Every face the party has met has a voice. (Met: linked to a session entry or a PC.)</p>
 {% endif %}
 {% endblock %}
