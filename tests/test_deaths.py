@@ -16,6 +16,19 @@ def script(*responses):
     return backend
 
 
+def by_entry(answers):
+    """A fake answer chosen by which entry the prompt revises, so parallel order doesn't matter."""
+    def respond(system, prompt, schema):
+        first = prompt.splitlines()[0]
+        for name, answer in answers.items():
+            if f"] {name}" in first:
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+        raise AssertionError(f"unexpected prompt: {first}")
+    return respond
+
+
 def no_change(summary="Untouched."):
     return {"summary": summary, "fields": {}, "reasons": [], "proposed_links": [], "dm_notes": ""}
 
@@ -82,10 +95,11 @@ def test_the_ripple_reaches_linked_entries_but_not_pcs_or_logs(conn, world):
 
 def test_the_ripple_proposes_per_linked_entry_with_the_chosen_model(conn, world):
     deaths.mark(conn, db.get_entity(conn, world["kreil"]), "Poisoned.", party_knows=False)
-    backend = script(change("personality", "Loyal, and lost."), no_change())  # aide (#2), then guild (#3)
+    answers = by_entry({"Aide": change("personality", "Loyal, and lost."), "Guild": no_change()})
+    backend = script(answers, answers)
     deaths.start_ripple(conn, db.get_entity(conn, world["kreil"]), "haiku")
     assert [c["model"] for c in backend.calls] == [llm.MODEL_CHOICES["haiku"][0]] * 2
-    assert "does NOT know of this death" in backend.calls[0]["prompt"] and "Poisoned." in backend.calls[0]["prompt"]
+    assert all("does NOT know of this death" in c["prompt"] and "Poisoned." in c["prompt"] for c in backend.calls)
     aide = proposals.latest_open(conn, world["aide"])
     assert aide["cause_id"] == world["kreil"] and aide["request"]["title"] == "After Kreil's death"
     assert proposals.latest_open(conn, world["guild"]) is None  # "no change" closes itself
@@ -103,7 +117,8 @@ def test_the_ripple_defaults_to_sonnet(conn, world):
 
 def test_a_failed_ripple_call_shows_up(conn, world):
     deaths.mark(conn, db.get_entity(conn, world["kreil"]), "", party_knows=True)
-    script(llm.LLMError("the loom snapped"), no_change())
+    answers = by_entry({"Aide": llm.LLMError("the loom snapped"), "Guild": no_change()})
+    script(answers, answers)
     deaths.start_ripple(conn, db.get_entity(conn, world["kreil"]))
     states = {r["entity"]["name"]: (r["state"], r["error"]) for r in deaths.ripple_status(conn, world["kreil"])}
     assert states["Aide"] == ("failed", "the loom snapped")
@@ -129,9 +144,10 @@ def ids(client):
 
 def test_mark_and_ripple_from_the_page(client, ids):
     page = client.get(f"/npc/{ids['kreil']}").text
-    assert "Mark deceased…" in page and "the 1 linked entry" in page
+    assert "Mark deceased…" in page and "Propose consequences for" in page
     backend = script(change("personality", "Loyal, and adrift."))
-    client.post(f"/npc/{ids['kreil']}/deceased", data={"how": "Fell from the tower.", "ripple": "1", "model": "sonnet"})
+    client.post(f"/npc/{ids['kreil']}/deceased", data={"how": "Fell from the tower.", "target": [str(ids["aide"])],
+                                                       "model": "sonnet"})
     assert len(backend.calls) == 1
     page = client.get(f"/npc/{ids['kreil']}").text
     assert "✝ Deceased" in page and "secret: the party doesn't know" in page and "to review" in page

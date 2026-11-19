@@ -75,6 +75,15 @@
 <p class="muted">No open threads. To track one, keep a draft and tick "include in AI context" on it.</p>
 {% endif %}
 
+<h2>Unlinked mentions</h2>
+{% if b.mentions %}
+<p class="muted"><a href="/mentions">{{ b.mentions|length }} place{{ "s" if b.mentions|length != 1 }}</a> where an entry names another with no link between them,
+  so a death's ripple or “near the party” can't see the connection. For example:
+  {% for m in b.mentions[:4] %}<a href="/{{ m.source.type }}/{{ m.source.id }}">{{ m.source.name }}</a> → {{ m.target.name }}{{ "; " if not loop.last else "." }}{% endfor %}</p>
+{% else %}
+<p class="muted">Every entry that names another is linked to it.</p>
+{% endif %}
+
 <h2>Faces without a voice</h2>
 {% if b.voiceless %}
 <p class="muted">Characters the party has met (in a session entry, or linked to a PC) with nothing written on how to play them.</p>

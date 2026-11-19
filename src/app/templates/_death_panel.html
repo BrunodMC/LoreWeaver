@@ -3,6 +3,17 @@
 <label>Model
   <select name="model">{% for key, choice in model_choices.items() %}<option value="{{ key }}"{% if key == default %} selected{% endif %}>{{ choice[1] }}</option>{% endfor %}</select></label>
 {% endmacro %}
+{% macro picker(candidates) %}
+<fieldset class="ripple-picker">
+  <legend>Propose consequences for</legend>
+  {% for c in candidates %}
+  <label class="checkbox"><input type="checkbox" name="target" value="{{ c.entity.id }}"{% if c.linked %} checked{% endif %}>
+    <span class="type-tag">{{ entity_types[c.entity.type].label }}</span> {{ c.entity.name }}
+    <span class="hint">{{ c.why|truncate(110) }}</span></label>
+  {% endfor %}
+  <p class="hint">Linked entries come ticked. Unlinked entries that name them, or that they name, are offered unticked.</p>
+</fieldset>
+{% endmacro %}
 {% if entity.deceased %}
 <section class="review-panel death-panel">
   <strong>✝ Deceased</strong>
@@ -22,7 +33,7 @@
     </form>
   </div>
   {% if death.ripple %}
-  <p class="hint">The ripple through linked entries:</p>
+  <p class="hint">The ripple:</p>
   <ul class="ripple-list">
     {% for r in death.ripple %}
     <li><a href="/{{ r.entity.type }}/{{ r.entity.id }}">{{ r.entity.name }}</a>
@@ -34,10 +45,11 @@
   <div hx-get="{{ url }}" hx-trigger="every 4s" hx-select=".death-panel" hx-target=".death-panel" hx-swap="outerHTML"></div>
   {% endif %}
   {% endif %}
-  {% if death.targets %}
+  {% if death.candidates %}
   <details class="ripple-again">
-    <summary>{{ "Ripple again" if death.ripple else "Ripple through the " ~ death.targets ~ " linked entries" }}</summary>
+    <summary>{{ "Ripple again" if death.ripple else "Ripple through the bible" }}</summary>
     <form method="post" action="{{ url }}/deceased/ripple" class="entity-form">
+      {{ picker(death.candidates) }}
       {{ model_select(death.default_model) }}
       <div class="form-actions"><button type="submit">Propose consequences</button></div>
     </form>
@@ -51,9 +63,8 @@
     <label>How they died <span class="hint">(optional; ||bars|| work as anywhere)</span>
       <textarea name="how" rows="2" placeholder="Beheaded by Angela after the ambush at Low Passage."></textarea></label>
     <label class="checkbox"><input type="checkbox" name="party_knows" value="1"> The party knows (they saw it, or heard)</label>
-    {% if death.targets %}
-    <label class="checkbox"><input type="checkbox" name="ripple" value="1" checked>
-      Propose consequences for the {{ death.targets }} linked entr{{ "y" if death.targets == 1 else "ies" }}</label>
+    {% if death.candidates %}
+    {{ picker(death.candidates) }}
     {{ model_select(death.default_model) }}
     {% endif %}
     <div class="form-actions"><button type="submit" class="primary">Mark deceased</button></div>

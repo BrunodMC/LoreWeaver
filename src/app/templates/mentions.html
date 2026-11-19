@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Unlinked mentions · LoreWeaver{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Unlinked mentions</h1>
+    <p class="muted">Entries that name another entry with no link between them. Links are what the app walks
+      (a death's ripple, “near the party”), so a relationship that only lives in prose is invisible to it.
+      Link the ones that are real relationships; rule out the rest.</p>
+  </div>
+</div>
+<datalist id="relation-labels">{% for l in labels %}<option value="{{ l }}">{% endfor %}</datalist>
+{% if groups %}
+<p class="hint">{{ total }} mention{{ "s" if total != 1 }} in {{ groups|length }} entr{{ "y" if groups|length == 1 else "ies" }}.</p>
+{% for g in groups %}{% set s = g.source %}
+<section class="mention-group" id="from-{{ s.id }}">
+  <h2><span class="type-tag">{{ entity_types[s.type].label }}</span> <a href="/{{ s.type }}/{{ s.id }}">{{ s.name }}</a></h2>
+  <ul class="inbox">
+    {% for m in g.found %}
+    <li class="inbox-item mention">
+      <p class="hint">“{{ m.snippet }}”</p>
+      <form method="post" action="/mentions/link" class="mention-form">
+        <input type="hidden" name="source_id" value="{{ s.id }}">
+        <input type="hidden" name="next" value="/mentions#from-{{ s.id }}">
+        <span>{{ s.name }}</span>
+        <select name="direction" aria-label="Direction" title="Which way the relation reads">
+          <option value="forward">→</option><option value="reverse">←</option></select>
+        <input type="text" name="label" list="relation-labels" placeholder="relation, e.g. works with" required aria-label="Relation">
+        {% if m.targets|length > 1 %}
+        <select name="target_id" aria-label="Which entry">{% for t in m.targets %}<option value="{{ t.id }}">{{ t.name }} ({{ entity_types[t.type].label }})</option>{% endfor %}</select>
+        {% else %}
+        <input type="hidden" name="target_id" value="{{ m.target.id }}"><a href="/{{ m.target.type }}/{{ m.target.id }}">{{ m.target.name }}</a>
+        {% endif %}
+        <label class="checkbox"><input type="checkbox" name="known" value="1"> party knows</label>
+        <button type="submit" class="primary">Link</button>
+      </form>
+      <form method="post" action="/mentions/dismiss" class="inline-form">
+        <input type="hidden" name="source_id" value="{{ s.id }}">
+        <input type="hidden" name="target_id" value="{{ m.target.id }}">
+        <input type="hidden" name="next" value="/mentions#from-{{ s.id }}">
+        <button type="submit" name="scope" value="pair" class="link-action">Not a link</button>
+        <button type="submit" name="scope" value="target" class="link-action"
+                title="For places and powers named everywhere">Never suggest {{ m.target.name }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% else %}
+<p class="muted">Every entry that names another is linked to it. Tidy.</p>
+{% endif %}
+{% endblock %}

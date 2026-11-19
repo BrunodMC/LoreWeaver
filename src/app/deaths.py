@@ -7,7 +7,7 @@ on. Like every secret here, a death the party didn't witness stays hidden from t
 """
 import sqlite3
 
-from . import db, proposals
+from . import db, mentions, proposals
 
 DEATH_TYPES = ("npc", "adversary", "pc")
 RIPPLE_TYPES = ("npc", "faction", "arc", "location", "item", "adversary")  # not PCs (players own them) or logs
@@ -54,12 +54,37 @@ def ripple_request(entity: dict, how: str, party_knows: bool) -> dict:
             "how": how.strip(), "party_knows": party_knows, "title": f"After {entity['name']}'s death"}
 
 
-def start_ripple(conn: sqlite3.Connection, entity: dict, choice: str | None = None) -> list[int]:
+def ripple_candidates(conn: sqlite3.Connection, entity_id: int) -> list[dict]:
+    """Who a death could reach: linked entries (ticked by default), then entries that name the dead, or
+    that the dead's entry names, without a link (unticked: a mention isn't always a relationship)."""
+    links = db.links_for(conn, entity_id)
+    out, seen = [], {entity_id}
+    for key, arrow in (("outgoing", "→"), ("incoming", "←")):
+        for link in links[key]:
+            other = db.get_entity(conn, link["other_id"])
+            if other and other["id"] not in seen and other["type"] in RIPPLE_TYPES and other["status"] != "archived":
+                seen.add(other["id"])
+                out.append({"entity": other, "linked": True, "why": f"{arrow} {link['relation_label']}"})
+    for m in mentions.involving(conn, entity_id):
+        others = m.targets if m.source["id"] == entity_id else [m.source]
+        for other in others:
+            if other["id"] not in seen and other["type"] in RIPPLE_TYPES and other["status"] != "archived":
+                seen.add(other["id"])
+                where = "named here" if m.source["id"] == entity_id else "names them"
+                out.append({"entity": other, "linked": False, "why": f"{where}, unlinked: “{m.snippet}”"})
+    return out
+
+
+def start_ripple(conn: sqlite3.Connection, entity: dict, choice: str | None = None,
+                 target_ids: set[int] | None = None) -> list[int]:
+    """Ripple to the chosen candidates (by default, the linked ones)."""
     request = ripple_request(entity, entity.get("death_note", ""), entity.get("deceased") == "known")
-    targets = ripple_targets(conn, entity["id"])
-    for target in targets:
+    candidates = ripple_candidates(conn, entity["id"])
+    chosen = [c["entity"] for c in candidates
+              if (c["entity"]["id"] in target_ids if target_ids is not None else c["linked"])]
+    for target in chosen:
         proposals.start("death_ripple", target["id"], request, choice)
-    return [t["id"] for t in targets]
+    return [t["id"] for t in chosen]
 
 
 def ripple_status(conn: sqlite3.Connection, entity_id: int) -> list[dict]:
@@ -67,15 +92,20 @@ def ripple_status(conn: sqlite3.Connection, entity_id: int) -> list[dict]:
     rows = conn.execute("SELECT p.id, p.entity_id, p.status, p.state, p.changes, p.links FROM proposals p "
                         "WHERE p.cause_id = ? ORDER BY p.id", (entity_id,)).fetchall()
     latest = {r["entity_id"]: r for r in rows}
+    asked = set(latest) | {t.entity_id for t in proposals.TASKS.values()
+                           if t.kind == "death_ripple" and t.cause_id == entity_id}
     out = []
-    for target in ripple_targets(conn, entity_id):
-        task = proposals.task_for(target["id"])
-        row = latest.get(target["id"])
-        if task and task.kind == "death_ripple" and task.status in ("running", "failed") and (
-                row is None or task.status == "running"):
+    for target_id in sorted(asked):
+        target = db.get_entity(conn, target_id)
+        if target is None:
+            continue
+        task = proposals.task_for(target_id)
+        task = task if task and task.cause_id == entity_id else None
+        row = latest.get(target_id)
+        if task and task.status in ("running", "failed") and (row is None or task.status == "running"):
             state = task.status
         elif row is None:
-            state = "not asked"
+            continue
         elif row["changes"] == "{}" and row["links"] == "[]":
             state = "nothing to change"
         elif row["status"] == "open":

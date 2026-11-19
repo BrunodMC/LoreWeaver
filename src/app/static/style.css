@@ -455,3 +455,10 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
 .mark-deceased > summary, .ripple-again > summary { cursor: pointer; font-weight: 600; }
 .ripple-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
 .deceased-note { font-style: italic; color: var(--muted); }
+
+/* ── Unlinked mentions, ripple picker ──────────────────────────────────── */
+.mention-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 6px 0 4px; }
+.mention-form input[type="text"] { min-width: 12rem; flex: 0 1 16rem; }
+.mention-group h2 { display: flex; align-items: baseline; gap: 8px; }
+.ripple-picker { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 10px 0; display: grid; gap: 4px; }
+.ripple-picker legend { font-weight: 600; padding: 0 4px; }

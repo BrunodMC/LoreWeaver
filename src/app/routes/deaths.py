@@ -17,13 +17,18 @@ def mortal_or_404(request: Request, conn, type_key: str, entity_id: int) -> dict
     return entity_or_404(conn, type_key, entity_id)
 
 
+def picked(form) -> set[int]:
+    return {int(v) for v in form.getlist("target") if str(v).isdigit()}
+
+
 @router.post("/{type_key}/{entity_id}/deceased")
 async def mark_deceased(request: Request, type_key: str, entity_id: int, conn: Conn):
     entity = mortal_or_404(request, conn, type_key, entity_id)
     form = await request.form()
     deaths.mark(conn, entity, str(form.get("how", "")), form.get("party_knows") == "1")
-    if form.get("ripple") == "1":
-        deaths.start_ripple(conn, db.get_entity(conn, entity_id), str(form.get("model", "")) or None)
+    chosen = picked(form)
+    if chosen:
+        deaths.start_ripple(conn, db.get_entity(conn, entity_id), str(form.get("model", "")) or None, chosen)
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 
@@ -40,7 +45,7 @@ async def ripple(request: Request, type_key: str, entity_id: int, conn: Conn):
     if not entity.get("deceased"):
         raise HTTPException(409, "Mark them deceased first")
     form = await request.form()
-    deaths.start_ripple(conn, entity, str(form.get("model", "")) or None)
+    deaths.start_ripple(conn, entity, str(form.get("model", "")) or None, picked(form))
     return RedirectResponse(f"/{type_key}/{entity_id}", status_code=303)
 
 

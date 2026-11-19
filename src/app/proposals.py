@@ -341,6 +341,7 @@ class Task:
     status: str = "running"  # running | done | failed
     error: str = ""
     model: str = ""
+    cause_id: int | None = None
     started: float = field(default_factory=time.monotonic)
 
     @property
@@ -373,7 +374,7 @@ def start(kind: str, entity_id: int, request: dict, choice: str | None = None) -
     current = task_for(entity_id)
     if current and current.status == "running":
         return current
-    task = Task(kind, entity_id, model=model_choice(KINDS[kind], choice))
+    task = Task(kind, entity_id, model=model_choice(KINDS[kind], choice), cause_id=request.get("cause_id"))
     with _lock:
         TASKS[entity_id] = task
     if generation.INLINE:
