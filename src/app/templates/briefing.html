@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Briefing · LoreWeaver{% endblock %}
+{% block content %}
+{% set b = brief %}
+<div class="page-head">
+  <div>
+    <h1>Briefing</h1>
+    <p class="muted">
+      {% if b.session %}{% set s = b.session %}
+      Last at the table: <a href="/session/{{ s.entity.id }}">{{ s.entity.name }}</a>{% if s.days_ago is not none %},
+        {% if s.days_ago == 0 %}today{% elif s.days_ago == 1 %}yesterday{% elif s.days_ago > 0 %}{{ s.days_ago }} days ago{% else %}dated {{ s.entity.fields.session_date }}{% endif %}{% else %} <span class="hint">(no date on it)</span>{% endif %}.
+      {% else %}No session entries yet.{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="button" href="/session/new">New session entry</a>
+  </div>
+</div>
+
+<h2>On your desk</h2>
+{% if b.desk %}
+<ul class="inbox briefing-desk">
+  {% if b.drafts %}
+  <li class="inbox-item"><div class="inbox-title">
+    <a href="/drafts">{{ b.drafts|length }} AI draft{{ "s" if b.drafts|length != 1 }} to review</a>
+    {% if b.decisions %}<span class="badge badge-draft">⚠ {{ b.decisions }} decision{{ "s" if b.decisions != 1 }} open</span>{% endif %}
+  </div>
+  <p class="hint">{% for d in b.drafts[:6] %}<a href="/{{ d.entity.type }}/{{ d.entity.id }}">{{ d.entity.name }}</a>{{ ", " if not loop.last }}{% endfor %}{% if b.drafts|length > 6 %} and {{ b.drafts|length - 6 }} more{% endif %}</p></li>
+  {% endif %}
+  {% if b.unfiled %}
+  <li class="inbox-item"><div class="inbox-title">
+    <a href="/drafts">{{ b.unfiled|length }} unfiled reveal{{ "s" if b.unfiled|length != 1 }}</a>
+  </div>
+  <p class="hint">What the party learned with no session to file it under. File them before you write the session notes.</p></li>
+  {% endif %}
+  {% for c in b.composing %}
+  <li class="inbox-item"><div class="inbox-title">
+    <span class="type-tag">Encounter</span>
+    <a href="/encounters/{{ c.id }}">{{ c.brief|truncate(80) }}</a>
+    <span class="badge badge-draft">{{ "picking a premise" if c.stage == "spines" else "picking the cast" }}</span>
+  </div></li>
+  {% endfor %}
+  {% for a in b.audits %}
+  <li class="inbox-item"><div class="inbox-title">
+    <span class="type-tag">{{ a.kind }} check</span>
+    <a href="/{{ a.type }}/{{ a.entity_id }}">{{ a.name }}</a>
+    <span class="badge badge-draft">{{ a.findings }} finding{{ "s" if a.findings != 1 }} to rule on</span>
+  </div></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Clear. Nothing generated, revealed or checked is waiting on you.</p>
+{% endif %}
+
+<h2>Open threads</h2>
+{% if b.threads %}
+<p class="muted">Drafts you've flagged as open (the AI sees them as UNDECIDED). The ones linked to a PC or the last session come first.</p>
+<ul class="inbox">
+  {% for t in b.threads %}{% set e = t.entity %}
+  <li class="inbox-item"><div class="inbox-title">
+    <span class="type-tag">{{ entity_types[e.type].label }}</span>
+    <a href="/{{ e.type }}/{{ e.id }}">{{ e.name }}</a>
+    {% if t.near %}<span class="badge badge-edit">near the party</span>{% endif %}
+  </div></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No open threads. To track one, keep a draft and tick "include in AI context" on it.</p>
+{% endif %}
+
+<h2>Faces without a voice</h2>
+{% if b.voiceless %}
+<p class="muted">Known to the party, canon, and nothing written on how to play them.</p>
+<ul class="inbox briefing-faces">
+  {% for e in b.voiceless %}
+  <li class="inbox-item"><div class="inbox-title">
+    <span class="type-tag">{{ entity_types[e.type].label }}</span>
+    <a href="/{{ e.type }}/{{ e.id }}">{{ e.name }}</a>
+    <a class="link-action" href="/{{ e.type }}/{{ e.id }}/edit">Add a voice</a>
+  </div></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Every face the party has met has a voice.</p>
+{% endif %}
+{% endblock %}
