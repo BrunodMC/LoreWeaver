@@ -60,6 +60,31 @@ python -m uvicorn src.app.main:app --reload
 Then open <http://127.0.0.1:8000>. On startup the app backs up the database to `data/backups/`
 (keeping the last ten) and applies any pending migrations.
 
+## The DM password, and players on the network
+
+Anyone without a DM session is a player: they get party view only, can't switch to the DM view, and
+can't change anything. Every route is DM-only unless it's on the read-only allowlist in
+`src/app/auth.py` (`party_safe`), and a test sweeps the whole app to keep it that way.
+
+Until you set a password, only the machine running the app counts as the DM, so a local setup works
+as before. Set one before anyone else can reach the app (from the host machine; it signs out every
+earlier session):
+
+```powershell
+python -m src.app.auth set-password
+```
+
+From then on, everyone signs in at `/login`, the host machine included (a tunnel also arrives from
+the host, so the host alone vouches for nobody). Sessions last 30 days. To let players on your Wi-Fi
+browse the party view, listen on the network instead of only this machine:
+
+```powershell
+python -m uvicorn src.app.main:app --host 0.0.0.0
+```
+
+Players then open `http://<this PC's LAN address>:8000`. It's plain HTTP, which is fine on a home
+network but not on the open internet.
+
 ## Where the data lives
 
 The bible is a SQLite file at `data/loreweaver.db`. The `data/` folder is gitignored on purpose:

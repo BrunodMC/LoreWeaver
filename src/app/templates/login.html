@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sign in · LoreWeaver{% endblock %}
+{% block content %}
+<section class="login">
+  <h1>The DM's desk</h1>
+  {% if is_dm %}
+  <p>You're already signed in as the DM. <a href="{{ next }}">Carry on</a>.</p>
+  {% elif not has_password %}
+  <p>No DM password is set, so only the machine running LoreWeaver is treated as the DM.
+     To sign in from another device, set one on that machine:</p>
+  <pre><code>python -m src.app.auth set-password</code></pre>
+  {% else %}
+  <form method="post" action="/login" class="login-form">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required autofocus>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <button type="submit" class="button primary">Sign in</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

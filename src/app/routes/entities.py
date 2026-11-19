@@ -66,13 +66,21 @@ def get_conn() -> Iterator[sqlite3.Connection]:
 Conn = Annotated[sqlite3.Connection, Depends(get_conn)]
 
 
+def is_dm(request: Request) -> bool:
+    """Set for every request by the DM gate in main.py; absent means nobody vouched for it."""
+    return getattr(request.state, "is_dm", False)
+
+
 def is_party_view(request: Request) -> bool:
-    return request.cookies.get(VIEW_COOKIE) == "party"
+    """Players always see party view; the DM sees it only when they choose to preview it."""
+    return not is_dm(request) or request.cookies.get(VIEW_COOKIE) == "party"
 
 
 def render(request: Request, name: str, context: dict, status_code: int = 200) -> HTMLResponse:
     return templates.TemplateResponse(
-        request, name, {"party_view": is_party_view(request), **context}, status_code=status_code
+        request, name, {"party_view": is_party_view(request), "is_dm": is_dm(request),
+                          "signed_in": "dm_session" in request.cookies, **context},
+        status_code=status_code,
     )
 
 

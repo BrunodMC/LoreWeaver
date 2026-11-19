@@ -434,3 +434,10 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
   .plate { align-items: flex-start; }
   .seal { width: 40px; height: 40px; }
 }
+
+/* ── Sign in / out ─────────────────────────────────────────────────────── */
+.sign-out { display: inline; margin: 0; }
+.sign-out button { padding: 3px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font: 500 0.82rem var(--f-ui); cursor: pointer; }
+.login { max-width: 26rem; margin: 3rem auto; }
+.login-form { display: grid; gap: 10px; }
+.login-form input[type="password"] { font-size: 1rem; padding: 8px 10px; }
