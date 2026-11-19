@@ -1,0 +1,62 @@
+{% set url = "/" ~ etype.key ~ "/" ~ entity.id %}
+{% macro model_select(default) %}
+<label>Model
+  <select name="model">{% for key, choice in model_choices.items() %}<option value="{{ key }}"{% if key == default %} selected{% endif %}>{{ choice[1] }}</option>{% endfor %}</select></label>
+{% endmacro %}
+{% if entity.deceased %}
+<section class="review-panel death-panel">
+  <strong>✝ Deceased</strong>
+  {% if entity.deceased == "known" %}<span class="badge badge-known">the party knows</span>
+  {% else %}<span class="badge badge-unknown">secret: the party doesn't know</span>{% endif %}
+  {% if entity.death_note %}<p>{{ entity.death_note|lore }}</p>{% endif %}
+  <div class="form-actions">
+    {% if entity.deceased == "secret" %}
+    <form method="post" action="{{ url }}/deceased/reveal" class="inline-form"
+          onsubmit="return confirm('Reveal the death of {{ entity.name|e }} to the party?')">
+      <button type="submit">Reveal the death</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url }}/alive" class="inline-form"
+          onsubmit="return confirm('Mark {{ entity.name|e }} alive again? Changes already applied from the ripple stay.')">
+      <button type="submit" class="link-action">Not dead after all</button>
+    </form>
+  </div>
+  {% if death.ripple %}
+  <p class="hint">The ripple through linked entries:</p>
+  <ul class="ripple-list">
+    {% for r in death.ripple %}
+    <li><a href="/{{ r.entity.type }}/{{ r.entity.id }}">{{ r.entity.name }}</a>
+      <span class="badge {{ 'badge-draft' if r.state in ('to review', 'failed') else 'badge-edit' }}">{% if r.state == "running" %}<span class="spinner" aria-hidden="true"></span> {% endif %}{{ r.state }}</span>
+      {% if r.error %}<span class="hint">{{ r.error|truncate(120) }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% if death.ripple|selectattr("state", "equalto", "running")|list %}
+  <div hx-get="{{ url }}" hx-trigger="every 4s" hx-select=".death-panel" hx-target=".death-panel" hx-swap="outerHTML"></div>
+  {% endif %}
+  {% endif %}
+  {% if death.targets %}
+  <details class="ripple-again">
+    <summary>{{ "Ripple again" if death.ripple else "Ripple through the " ~ death.targets ~ " linked entries" }}</summary>
+    <form method="post" action="{{ url }}/deceased/ripple" class="entity-form">
+      {{ model_select(death.default_model) }}
+      <div class="form-actions"><button type="submit">Propose consequences</button></div>
+    </form>
+  </details>
+  {% endif %}
+</section>
+{% else %}
+<details class="mark-deceased">
+  <summary>Mark deceased…</summary>
+  <form method="post" action="{{ url }}/deceased" class="entity-form">
+    <label>How they died <span class="hint">(optional; ||bars|| work as anywhere)</span>
+      <textarea name="how" rows="2" placeholder="Beheaded by Angela after the ambush at Low Passage."></textarea></label>
+    <label class="checkbox"><input type="checkbox" name="party_knows" value="1"> The party knows (they saw it, or heard)</label>
+    {% if death.targets %}
+    <label class="checkbox"><input type="checkbox" name="ripple" value="1" checked>
+      Propose consequences for the {{ death.targets }} linked entr{{ "y" if death.targets == 1 else "ies" }}</label>
+    {{ model_select(death.default_model) }}
+    {% endif %}
+    <div class="form-actions"><button type="submit" class="primary">Mark deceased</button></div>
+  </form>
+</details>
+{% endif %}

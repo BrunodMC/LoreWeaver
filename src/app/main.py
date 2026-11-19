@@ -8,7 +8,7 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import auth, db, generation
-from .routes import audits, briefing, encounters, entities, generate, login, portraits, proposals, review
+from .routes import audits, briefing, deaths, encounters, entities, generate, login, portraits, proposals, review
 
 APP_DIR = Path(__file__).parent
 
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(briefing.router)  # before the entity routes: /briefing would look like a type
     app.include_router(audits.router)
     app.include_router(proposals.router)
+    app.include_router(deaths.router)
     app.include_router(portraits.router)  # before the entity routes: /portrait/{id} would look like a type
     app.include_router(entities.router)
     return app

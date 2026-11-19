@@ -111,7 +111,11 @@ def render_entry(entity: dict, links: dict[str, list[dict]], included: set[int])
     etype = ENTITY_TYPES[entity["type"]]
     status = "CANON" if entity["status"] == "canon" else "UNDECIDED"
     knows = " · party knows" if db.visible_to_party(entity) else ""
+    if entity.get("deceased"):
+        knows += " · DECEASED" + ("" if entity["deceased"] == "known" else " (the party doesn't know)")
     lines = [f"### {ref(entity)} · {status}{knows}"]
+    if entity.get("deceased") and entity.get("death_note"):
+        lines.append(f"Death: {entity['death_note']}")
     if entity.get("party_name"):
         lines.append(f"Known to the party only as: {entity['party_name']} (the real name is itself a secret)")
     for f in etype.fields:

@@ -449,3 +449,9 @@ textarea { field-sizing: content; min-height: 3.2em; max-width: 100%; resize: ve
 .time-passes { margin: 14px 0; }
 .time-passes > summary { cursor: pointer; font-weight: 600; }
 .proposal-notes { margin: 8px 0; }
+
+/* ── Deaths ────────────────────────────────────────────────────────────── */
+.mark-deceased, .ripple-again { margin: 14px 0; }
+.mark-deceased > summary, .ripple-again > summary { cursor: pointer; font-weight: 600; }
+.ripple-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.deceased-note { font-style: italic; color: var(--muted); }

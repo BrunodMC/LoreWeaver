@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import (audit, composite, db, generation, knowledge, llm, ornament, portraits, proposals,
+from .. import (audit, composite, db, deaths, generation, knowledge, llm, ornament, portraits, proposals,
                search as search_mod, statblock)
 from ..entity_types import ENTITY_TYPES, NAV_GROUPS, STATUSES, EntityType
 
@@ -287,6 +287,9 @@ async def detail(request: Request, type_key: str, entity_id: int, conn: Conn):
         "portrait_style": portraits.style(conn) if not party_view and type_key in portraits.TYPES else "",
         "secrecy": None if party_view else secrecy_state(conn, entity_id, request.query_params.get("audit")),
         "proposal": None if party_view else proposal_state(conn, etype, entity_id, request.query_params.get("kept")),
+        "death": None if party_view or type_key not in deaths.DEATH_TYPES else {
+            "ripple": deaths.ripple_status(conn, entity_id) if entity.get("deceased") else [],
+            "targets": len(deaths.ripple_targets(conn, entity_id)), "default_model": deaths.RIPPLE_MODEL},
         "session_reveals": db.reveals(conn, entity_id) if not party_view and entity["type"] == "session" else None,
         "has_history": not party_view and db.lineage_for_entity(conn, entity_id) is not None,
         "extra_fields": extra_fields(etype, entity),

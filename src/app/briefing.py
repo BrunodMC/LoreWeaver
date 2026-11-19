@@ -55,7 +55,7 @@ def voiceless(conn: sqlite3.Connection) -> list[dict]:
     a distant archmage) doesn't put them across the table."""
     marks = ",".join("?" * len(VOICED_TYPES))
     rows = conn.execute(f"SELECT * FROM entities WHERE type IN ({marks}) AND status = 'canon' "
-                        f"AND known_to_party = 1", VOICED_TYPES).fetchall()
+                        f"AND known_to_party = 1 AND deceased = ''", VOICED_TYPES).fetchall()
     faces = [db.entity_from_row(r) for r in rows]
     meeting_places = {r[0] for r in conn.execute(
         "SELECT id FROM entities WHERE type IN ('session', 'pc') AND status != 'archived'")}

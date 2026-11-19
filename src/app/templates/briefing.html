@@ -42,7 +42,7 @@
   {% endfor %}
   {% for pr in b.proposals %}
   <li class="inbox-item"><div class="inbox-title">
-    <span class="type-tag">Time passes</span>
+    <span class="type-tag">{{ pr.request.title or "Time passes" }}</span>
     <a href="/{{ pr.entity_type }}/{{ pr.entity_id }}">{{ pr.entity_name }}</a>
     <span class="badge badge-draft">{{ pr.changes|length }} change{{ "s" if pr.changes|length != 1 }} proposed</span>
   </div>{% if pr.summary %}<p class="hint">{{ pr.summary }}</p>{% endif %}</li>

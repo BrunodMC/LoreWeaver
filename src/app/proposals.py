@@ -61,9 +61,27 @@ def time_passes_instructions(request: dict) -> list[str]:
     return lines
 
 
+def death_ripple_instructions(request: dict) -> list[str]:
+    lines = [f"{request.get('cause', 'Someone')} has died." + (f" How: {request['how']}" if request.get("how") else "")]
+    if request.get("party_knows"):
+        lines.append("The party knows of this death.")
+    else:
+        lines.append("The party does NOT know of this death: anything in your changes that reveals or implies it "
+                     "goes inside ||bars||.")
+    lines.append(
+        "This entry is linked to the dead. Revise it for what the death changes for THIS entry: a role left "
+        "empty or inherited, grief, relief, an opening someone takes, a debt or promise that dies with them, a "
+        "plan that collapses or speeds up, references that are now past tense. Many linked entries need one "
+        "small change or none, and an answer with no changes is the right one then. Don't assume others have "
+        "heard of the death unless it's plausible they would have.")
+    return lines
+
+
 KINDS: dict[str, Kind] = {
     "time_passes": Kind("time_passes", "Time passes", ("npc", "faction", "arc", "location"), "opus",
                         time_passes_instructions),
+    "death_ripple": Kind("death_ripple", "After a death", ("npc", "faction", "arc", "location", "item", "adversary"),
+                         "sonnet", death_ripple_instructions),
 }
 
 COMMON_RULES = """\
@@ -220,11 +238,13 @@ def run(conn, kind_key: str, entity_id: int, request: dict, choice: str | None =
         conn.execute("UPDATE proposals SET status = 'closed' WHERE entity_id = ? AND kind = ? AND status = 'open'",
                      (entity_id, kind_key))  # a fresh proposal replaces a stale one
         cur = conn.execute(
-            "INSERT INTO proposals (kind, entity_id, request, summary, changes, base, reasons, links, dm_notes, model) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO proposals (kind, entity_id, request, summary, changes, base, reasons, links, dm_notes, model, "
+            "cause_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (kind_key, entity_id, json.dumps({**request, "model_choice": choice}), checked.summary,
              json.dumps(checked.changes), json.dumps(base), json.dumps(checked.reasons), json.dumps(checked.links),
-             checked.dm_notes, result.model))
+             checked.dm_notes, result.model, request.get("cause_id"),
+             # a ripple's "no change here" is a record, not homework: it closes itself
+             "closed" if kind.key == "death_ripple" and not checked.changes and not checked.links else "open"))
     return cur.lastrowid
 
 
@@ -330,11 +350,12 @@ class Task:
 
 TASKS: dict[int, Task] = {}  # one at a time per entry
 _lock = threading.Lock()
+_slots = threading.BoundedSemaphore(3)  # a death's ripple fans out; don't start a dozen CLI processes at once
 
 
 def _work(task: Task, request: dict, choice: str | None) -> None:
     try:
-        with closing(db.get_connection()) as conn:
+        with _slots, closing(db.get_connection()) as conn:
             run(conn, task.kind, task.entity_id, request, choice)
         task.status = "done"
     except (ProposalFailed, llm.LLMError) as exc:

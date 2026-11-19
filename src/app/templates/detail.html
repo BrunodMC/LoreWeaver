@@ -22,6 +22,7 @@
       <p class="kicker"><a href="/{{ etype.key }}">{{ etype|plural(true) }}</a></p>
       <h1>{{ entity.name }}</h1>
       {% if role %}<p class="role">{{ role }}</p>{% endif %}
+      {% if entity.deceased == "known" %}<p class="deceased-note">✝ Deceased{% set told = entity.death_note|lore(true) %}{% if told %}: {{ told }}{% endif %}</p>{% endif %}
     </div>
     <dl class="fields">
       {% for f in etype.fields if not f.dm_only and f.key != "ancestry_role" %}
@@ -102,6 +103,7 @@
   {% if cast %}{% include "_cast_panel.html" %}{% endif %}
   {% if secrecy %}{% include "_secrecy_panel.html" %}{% endif %}
   {% if proposal %}{% include "_proposal_panel.html" %}{% endif %}
+  {% if death %}{% include "_death_panel.html" %}{% endif %}
 
   {% if etype.key in portrait_types %}
   <details class="ai-notes portrait-panel">

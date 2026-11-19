@@ -4,8 +4,8 @@
   {% with task = p.task %}{% include "_proposal_task.html" %}{% endwith %}
 {% elif p.open %}{% set o = p.open %}
 <section class="review-panel proposal-panel">
-  <strong>Time passes: proposed changes</strong>
-  <span class="hint">{{ o.request.elapsed }}{% if o.request.model_choice in model_choices %} · {{ model_choices[o.request.model_choice][1].split(":")[0] }}{% endif %}</span>
+  <strong>{{ o.request.title or "Time passes" }}: proposed changes</strong>
+  <span class="hint">{{ o.request.elapsed or "" }}{% if o.request.model_choice in model_choices %} · {{ model_choices[o.request.model_choice][1].split(":")[0] }}{% endif %}</span>
   {% if o.request.events %}<p class="hint">Meanwhile: {{ o.request.events }}</p>{% endif %}
   {% if o.summary %}<p>{{ o.summary }}</p>{% endif %}
   {% if o.changes or o.links %}
